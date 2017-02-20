@@ -23,6 +23,6 @@ main =
 --      putStrLn $ show (length allPossibleHands)
 --      putStrLn $ show (length allPossibleHands)
 --      putStrLn $ show (length allPossibleHands)
-
+      putStrLn $ show allRoyalFlush
       
   

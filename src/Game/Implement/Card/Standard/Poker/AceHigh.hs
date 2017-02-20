@@ -45,7 +45,7 @@ instance Eq Rank where
   a == b = (fromEnum a) == (fromEnum b)
 
 instance Ord Rank where
-  compare a b = (fromEnum a) `compare` (fromEnum b)
+  compare a b = (fromEnum b) `compare` (fromEnum a)
 
 instance Bounded Suit where
   minBound = Suit C.Clubs
@@ -86,7 +86,17 @@ instance Show Card where
 
 instance C.StandardCard Card where
   toStandardCard = getStandardCard
+  toRank c =
+    let (C.Card r _ ) = getStandardCard c
+        in r
+  toSuit c =
+    let (C.Card _ s ) = getStandardCard c
+        in s 
 
+instance C.OrderedCard Card where
+  compareRank (Card r0 _) (Card r1 _) = r0 `compare` r1
+  compareSuit (Card _ s0) (Card _ s1) = s0 `compare` s1
+    
 rankLst :: [Rank]
 rankLst = [minBound .. maxBound]
 
@@ -107,5 +117,9 @@ fromStandardCard c =
   let (C.Card cr cs) = C.toStandardCard c
       r = Rank cr
       s = Suit cs in
-    Card r s 
+    Card r s
+
+fromStandardCardLst :: C.StandardCard c => [c] -> [Card]
+fromStandardCardLst clst =
+  map fromStandardCard clst
       

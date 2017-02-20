@@ -1,7 +1,7 @@
 module Game.Implement.Card.Standard
   where
 
-import Data.Set as DS
+import qualified Data.Set as DS
 
 
 data Rank =
@@ -99,11 +99,23 @@ numCards = length cardLst
 
 class StandardCard a where
   toStandardCard :: a -> Card
+  toStandardCardLst :: [a] -> [Card]
+  toRank :: a -> Rank
+  toRankLst :: [a] -> [Rank]
+  toSuit :: a -> Suit
+  toSuitLst :: [a] -> [Suit]
+  toStandardCardLst lst = map toStandardCard lst
+  toRankLst lst = map toRank lst
+  toSuitLst lst = map toSuit lst
 
 class (Eq a, Ord a, StandardCard a) => OrderedCard a where
+  compareRank :: a -> a -> Ordering
+  compareSuit :: a -> a -> Ordering
 
 instance StandardCard Card where
   toStandardCard a = a
+  toRank (Card r _) = r
+  toSuit (Card _ s) = s
 
 type Hand = DS.Set Card
 
