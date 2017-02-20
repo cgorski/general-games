@@ -39,8 +39,8 @@ mkHighCard hand
           kickers = DS.deleteMax hand in
         Just $ HighCard highCard kickers
 
-isSameSuit :: [S.Card] -> Bool
-isSameSuit lst =
+isSameSuit :: S.Hand -> Bool
+isSameSuit hand =
   let
     ff (Just c0) (Just c1) =
       if ((S.toSuit c0) == (S.toSuit c1))
@@ -48,13 +48,16 @@ isSameSuit lst =
       else Nothing
     ff Nothing _ = Nothing
   in
-    case foldl1 ff $ map (\x -> Just x) lst of
+    case foldl1 ff $ map (\x -> Just x) (DS.toList hand) of
       Nothing -> False
       Just _ -> True
 
+--hasConsecutiveRanks :: [Hand] -> Bool
+
+
 mkRoyalFlush :: S.Hand -> Maybe PokerHand
 mkRoyalFlush hand
-  | (isMinHandSize hand) && (isSameSuit $ DS.toList hand) =
+  | (isMinHandSize hand) && (isSameSuit hand) =
       let
         lst = DS.toList hand
         slst = sortHighToLow lst
