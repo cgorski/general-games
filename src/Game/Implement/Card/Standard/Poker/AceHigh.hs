@@ -100,3 +100,10 @@ numCards = length cardLst
 getStandardCard :: Card -> C.Card
 getStandardCard (Card r s) = C.Card (getStandardRank r) (getStandardSuit s)
  
+fromStandardCard :: C.StandardCard c => c -> Card
+fromStandardCard c =
+  let (C.Card cr cs) = C.toStandardCard c
+      r = Rank cr
+      s = Suit cs in
+    Card r s 
+      
