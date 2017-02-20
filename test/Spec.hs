@@ -1,6 +1,7 @@
 import Test.HUnit
 import Game.Game.Poker
 import qualified Game.Implement.Card.Standard as S
+import qualified Game.Implement.Card.Standard.Poker.AceHigh as AH
 import Data.Set as DS
 
 allHands = allPossibleHands
@@ -30,7 +31,7 @@ testIsMinHandSize = TestCase (assertEqual "Is min size of 5" True (isMinHandSize
 testIsMinHandSize2 = TestCase (assertEqual "Is min size of 5" False (isMinHandSize $ DS.fromList [S.Card S.Ace S.Spades]))
 testSortHighToLow = TestCase (assertEqual "Is sorted from high to low"
                                sortedRoyalFlushLst
-                               (sortHighToLow royalFlushLst))
+                               (sortHighToLow $ AH.fromStandardCardLst royalFlushLst))
 testIsSameSuit = TestCase (assertEqual "Is same suit" True (isSameSuit $ DS.fromList royalFlushLst))    
                                
 tests = TestList [

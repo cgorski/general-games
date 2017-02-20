@@ -52,7 +52,18 @@ isSameSuit hand =
       Nothing -> False
       Just _ -> True
 
---hasConsecutiveRanks :: [Hand] -> Bool
+-- hasConsecutiveRanksAceHigh :: [S.Card] -> Bool
+-- hasConsecutiveRanksAceHigh hand =
+--   let handlst = sortHighToLow hand
+--       ff Nothing _ = Nothing
+--       ff (Just c0) (Just c1) =
+--         case (fromEnum $ S.toRank c0)-(fromEnum $ S.toRank c1) of
+--           1 -> True
+--           _ -> False
+--   in
+--     foldl1 ff handlst
+          
+        
 
 
 mkRoyalFlush :: S.Hand -> Maybe PokerHand
@@ -60,7 +71,7 @@ mkRoyalFlush hand
   | (isMinHandSize hand) && (isSameSuit hand) =
       let
         lst = DS.toList hand
-        slst = sortHighToLow lst
+        slst = sortHighToLow $ AH.fromStandardCardLst lst
         rlst = S.toRankLst slst
       in
         if (rlst == [S.Ace, S.King, S.Queen, S.Jack, S.Ten])
@@ -73,8 +84,8 @@ isRoyalFlush hand
   | isJust $ mkRoyalFlush hand = True
   | otherwise = False
 
-sortHighToLow :: [S.Card] -> [S.Card]
-sortHighToLow lst = S.toStandardCardLst $ sortBy S.compareRank $ AH.fromStandardCardLst lst
+sortHighToLow :: S.OrderedCard o => [o] -> [S.Card]
+sortHighToLow lst = S.toStandardCardLst $ sortBy S.compareRank lst
 
 standardLstToHand :: S.StandardCard s => [s] -> S.Hand
 standardLstToHand lst = DS.fromList $ S.toStandardCardLst lst
