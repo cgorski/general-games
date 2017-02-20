@@ -1,7 +1,8 @@
 module Game.Implement.Card.Standard
   where
 
-import Data.Choose
+import Data.Set as DS
+
 
 data Rank =
   Ace |
@@ -104,6 +105,6 @@ class (Eq a, Ord a, StandardCard a) => OrderedCard a where
 instance StandardCard Card where
   toStandardCard a = a
 
-
+type Hand = DS.Set Card
 
 

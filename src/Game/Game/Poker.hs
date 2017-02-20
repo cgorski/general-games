@@ -8,30 +8,44 @@ import qualified Data.Set as DS
 import Data.List (tails)
 
 
-type Hand = DS.Set S.Card
---type RankHand = Hand
---type KickerHand = Hand
+
+type RankHand = S.Hand
+type KickerHand = S.Hand
 
 data PokerHand =
-  HighCard Hand
-  | Pair Hand
-  | TwoPair Hand
-  | ThreeOfAKind Hand
-  | Straight Hand
-  | Flush Hand
-  | FullHouse Hand
-  | FourOfAKind Hand
-  | StraightFlush Hand
-  | RoyalFlush Hand
+  HighCard RankHand KickerHand
+  | Pair S.Hand
+  | TwoPair S.Hand
+  | ThreeOfAKind S.Hand
+  | Straight S.Hand
+  | Flush S.Hand
+  | FullHouse S.Hand
+  | FourOfAKind S.Hand
+  | StraightFlush S.Hand
+  | RoyalFlush S.Hand
 
-mkBestHand :: S.StandardCard s => [s] -> Hand
-mkBestHand clst = DS.fromList $ stdLst clst
+mkBestHand :: S.Hand -> Maybe PokerHand
+mkBestHand hand
+  | isMinHand hand = Nothing
+  | otherwise = mkHighCard hand
 
-mkHighCard :: Hand -> Maybe PokerHand
-mkHighCard c = Just $ HighCard $ DS.singleton $ S.toStandardCard $ maximum c
+mkHighCard :: S.Hand -> Maybe PokerHand
+mkHighCard hand
+  | isMinHand hand = Nothing
+  | otherwise = 
+      let highCard = DS.singleton $ maximum hand
+          kickers = DS.deleteMax hand in
+        Just $ HighCard highCard kickers
+        
+
+isMinHand :: S.Hand -> Bool
+isMinHand hand
+  | (length hand) < 5 = False
+  | otherwise = True
 
 stdLst :: S.StandardCard s => [s] -> [S.Card]
 stdLst lst = map S.toStandardCard lst
+
 
 choose :: Ord r => Int -> [r] -> [[r]]
 choose 0 lst = [[]]
@@ -40,6 +54,6 @@ choose n lst = do
   rest <- choose (n-1) xs
   return $ x : rest
 
-allPossibleHands :: [Hand]
---allPossibleHands = map DS.fromList $ choose 5 S.cardLst
-allPossibleHands = map DS.fromList $ choose 5 $ take 7 S.cardLst
+allPossibleHands :: [S.Hand]
+allPossibleHands = map DS.fromList $ choose 5 S.cardLst
+

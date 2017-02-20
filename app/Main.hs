@@ -14,15 +14,15 @@ main =
       n = numCards in
     do
       putStrLn $ show cards
-      putStrLn $ show min
-      putStrLn $ show max
-      putStrLn $ show l
-      putStrLn $ show n
-      putStrLn $ show $ take 100 allPossibleHands
-      putStrLn $ show (length allPossibleHands)
-      putStrLn $ show (length allPossibleHands)
-      putStrLn $ show (length allPossibleHands)
-      putStrLn $ show (length allPossibleHands)
+--      putStrLn $ show min
+--      putStrLn $ show max
+--      putStrLn $ show l
+--      putStrLn $ show n
+--      putStrLn $ show $ take 100 allPossibleHands
+--      putStrLn $ show (length allPossibleHands)
+--      putStrLn $ show (length allPossibleHands)
+--      putStrLn $ show (length allPossibleHands)
+--      putStrLn $ show (length allPossibleHands)
 
       
   
