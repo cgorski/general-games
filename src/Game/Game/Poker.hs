@@ -5,9 +5,12 @@ import qualified Game.Implement.Card.Standard as S
 import qualified Game.Implement.Card.Standard.Poker.AceHigh as AH
 import qualified Game.Implement.Card.Standard.Poker.AceLow as AL
 import qualified Data.Set as DS
-import Data.Choose
+import Data.List (tails)
+
 
 type Hand = DS.Set S.Card
+--type RankHand = Hand
+--type KickerHand = Hand
 
 data PokerHand =
   HighCard Hand
@@ -36,4 +39,12 @@ stdLst lst = map S.toStandardCard lst
 --intsToCards :: [Int] -> [S.Card]
 --intsToCards l = map toEnum l
 
-c = [x | x <- mapM (const "ABCD") [1..2], head x < head (tail x)]
+choose :: Ord r => Int -> [r] -> [[r]]
+choose 0 lst = [[]]
+choose n lst = do
+  (x:xs) <- tails lst
+  rest <- choose (n-1) xs
+  return $ x : rest
+
+chosen = choose 2 S.cardLst
+

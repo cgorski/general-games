@@ -43,4 +43,4 @@ test-suite general-games-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/poker
+  location: https://github.com/cgorski/general-games
