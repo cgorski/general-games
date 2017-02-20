@@ -16,9 +16,13 @@ main =
       putStrLn $ show cards
       putStrLn $ show min
       putStrLn $ show max
-      putStrLn $ show l;
-      putStrLn $ show n;
-      putStrLn $ show chosen;
-      putStrLn $ show (length chosen);
+      putStrLn $ show l
+      putStrLn $ show n
+      putStrLn $ show $ take 100 allPossibleHands
+      putStrLn $ show (length allPossibleHands)
+      putStrLn $ show (length allPossibleHands)
+      putStrLn $ show (length allPossibleHands)
+      putStrLn $ show (length allPossibleHands)
+
       
   

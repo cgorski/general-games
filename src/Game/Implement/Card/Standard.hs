@@ -72,7 +72,10 @@ instance Eq Card where
   (Card r s) == (Card r1 s1) = (r == r1) && (s == s1)
 
 instance Ord Card where
-  compare (Card r s) (Card r1 s1) = s `compare` s1
+  compare (Card r s) (Card r1 s1)
+    | s == s1 = r `compare` r1
+    | otherwise = s `compare` s1
+
 
 
 mkCard :: Rank -> Suit -> Card

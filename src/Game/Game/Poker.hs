@@ -17,7 +17,7 @@ data PokerHand =
   | Pair Hand
   | TwoPair Hand
   | ThreeOfAKind Hand
-  | StraightAL Hand
+  | Straight Hand
   | Flush Hand
   | FullHouse Hand
   | FourOfAKind Hand
@@ -33,12 +33,6 @@ mkHighCard c = Just $ HighCard $ DS.singleton $ S.toStandardCard $ maximum c
 stdLst :: S.StandardCard s => [s] -> [S.Card]
 stdLst lst = map S.toStandardCard lst
 
---allPossibleHands :: [Hand]
---allPossibleHands = map DS.fromList $ map (\h -> intsToCards h) $ elems $ choose (length S.cardLst) 5
-
---intsToCards :: [Int] -> [S.Card]
---intsToCards l = map toEnum l
-
 choose :: Ord r => Int -> [r] -> [[r]]
 choose 0 lst = [[]]
 choose n lst = do
@@ -46,5 +40,6 @@ choose n lst = do
   rest <- choose (n-1) xs
   return $ x : rest
 
-chosen = choose 2 S.cardLst
-
+allPossibleHands :: [Hand]
+--allPossibleHands = map DS.fromList $ choose 5 S.cardLst
+allPossibleHands = map DS.fromList $ choose 5 $ take 7 S.cardLst
