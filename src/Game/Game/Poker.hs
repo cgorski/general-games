@@ -5,7 +5,7 @@ import qualified Game.Implement.Card.Standard as S
 import qualified Game.Implement.Card.Standard.Poker.AceHigh as AH
 import qualified Game.Implement.Card.Standard.Poker.AceLow as AL
 import qualified Data.Set as DS
-import Data.List (tails, sortBy, nub)
+import Data.List (tails, sortBy, nub, find)
 import Data.Maybe (isJust)
 
 
@@ -65,8 +65,8 @@ hasConsecutiveRanks hand =
       Nothing -> False
       _ -> True
 
-hasNOfRank :: S.Hand -> [(S.Rank, Int)]
-hasNOfRank hand =
+nOfRank :: S.Hand -> [(S.Rank, Int)]
+nOfRank hand =
   let
     lst = DS.toList hand
     rlst = S.toRankLst lst
@@ -76,12 +76,23 @@ hasNOfRank hand =
   in
     map countel uniquelst
   
+hasNOfRank :: Int -> S.Hand -> Bool
+hasNOfRank i hand =
+  case (find (\(_,n) -> i == n) (DS.fromList $ nOfRank hand)) of
+    Just _ -> True
+    Nothing -> False
+    
+mkFourOfAKind :: S.Hand -> Maybe PokerHand
+mkFourOfAKind hand
+  | (isMinHandSize hand)
+    && (hasNOfRank 4 hand) = Just (FourOfAKind hand)
+  | otherwise = Nothing
 
---mkFourOfAKind :: S.Hand -> MaybePokerHand
---mkFourOfAKind hand =
-  
-
-           
+isFourOfAKind :: S.Hand -> Bool
+isFourOfAKind hand
+  | isJust $ mkFourOfAKind hand = True
+  | otherwise = False
+                
 mkStraightFlush :: S.Hand -> Maybe PokerHand
 mkStraightFlush hand
   | (isMinHandSize hand)
@@ -141,4 +152,7 @@ allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 
 allStraightFlush :: [S.Hand]
 allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
+
+allFourOfAKind :: [S.Hand]
+allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
 
