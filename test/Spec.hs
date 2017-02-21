@@ -26,6 +26,7 @@ royalFlush = DS.fromList royalFlushLst
   
 testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
 testPossibleRoyalFlush = TestCase (assertEqual "Total number of royal flushes" 4 (length allRoyalFlush))
+testPossibleStraightFlush = TestCase (assertEqual "Total number of straight flushes" 36 (length allStraightFlush))
 testMkRoyalFlush = TestCase (assertEqual "Is [AS, KS, QS, JS, TS] a Royal Flush" (Just $ RoyalFlush royalFlush) (mkRoyalFlush royalFlush))
 testIsMinHandSize = TestCase (assertEqual "Is min size of 5" True (isMinHandSize royalFlush))
 testIsMinHandSize2 = TestCase (assertEqual "Is min size of 5" False (isMinHandSize $ DS.fromList [S.Card S.Ace S.Spades]))
@@ -37,6 +38,7 @@ testIsSameSuit = TestCase (assertEqual "Is same suit" True (isSameSuit $ DS.from
 tests = TestList [
   TestLabel "Test for testPossibleHands" testPossibleHands,
   TestLabel "Test for testPossibleRoyalFlush" testPossibleRoyalFlush,
+  TestLabel "Test for testPossibleStraightFlush" testPossibleStraightFlush,
   TestLabel "Test for mkRoyalFlush" testMkRoyalFlush,
   TestLabel "Test for isMinHandSize royalFlush" testIsMinHandSize,
   TestLabel "Test for isMinHandSize singleton" testIsMinHandSize2,

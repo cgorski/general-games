@@ -52,19 +52,33 @@ isSameSuit hand =
       Nothing -> False
       Just _ -> True
 
--- hasConsecutiveRanksAceHigh :: [S.Card] -> Bool
--- hasConsecutiveRanksAceHigh hand =
---   let handlst = sortHighToLow hand
---       ff Nothing _ = Nothing
---       ff (Just c0) (Just c1) =
---         case (fromEnum $ S.toRank c0)-(fromEnum $ S.toRank c1) of
---           1 -> True
---           _ -> False
---   in
---     foldl1 ff handlst
+hasConsecutiveRanks :: S.OrderedCard o => [o] -> Bool
+hasConsecutiveRanks hand =
+  let handlst = map (\x -> Just x) $ sortHighToLow hand
+      ff Nothing _ = Nothing
+      ff (Just c0) (Just c1) =
+        case (fromEnum $ S.toRank c0)-(fromEnum $ S.toRank c1) of
+          1 -> Just c1
+          _ -> Nothing
+  in
+    case foldl1 ff handlst of
+      Nothing -> False
+      _ -> True
           
-        
+mkStraightFlush :: S.Hand -> Maybe PokerHand
+mkStraightFlush hand
+  | (isMinHandSize hand)
+    && (isSameSuit hand)
+    && ((hasConsecutiveRanks (AH.fromStandardCardLst $ DS.toList hand))
+         || (hasConsecutiveRanks (AL.fromStandardCardLst $ DS.toList hand)))
+    && (not $ isRoyalFlush hand) =
+      Just (StraightFlush hand)
+  | otherwise = Nothing
 
+isStraightFlush :: S.Hand -> Bool
+isStraightFlush hand
+  | isJust $ mkStraightFlush hand = True
+  | otherwise = False
 
 mkRoyalFlush :: S.Hand -> Maybe PokerHand
 mkRoyalFlush hand
@@ -107,4 +121,7 @@ allPossibleHands = map DS.fromList $ choose 5 S.cardLst
 
 allRoyalFlush :: [S.Hand]
 allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
+
+allStraightFlush :: [S.Hand]
+allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
 
