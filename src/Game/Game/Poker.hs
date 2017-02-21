@@ -5,7 +5,7 @@ import qualified Game.Implement.Card.Standard as S
 import qualified Game.Implement.Card.Standard.Poker.AceHigh as AH
 import qualified Game.Implement.Card.Standard.Poker.AceLow as AL
 import qualified Data.Set as DS
-import Data.List (tails, sortBy)
+import Data.List (tails, sortBy, nub)
 import Data.Maybe (isJust)
 
 
@@ -64,7 +64,24 @@ hasConsecutiveRanks hand =
     case foldl1 ff handlst of
       Nothing -> False
       _ -> True
-          
+
+hasNOfRank :: S.Hand -> [(S.Rank, Int)]
+hasNOfRank hand =
+  let
+    lst = DS.toList hand
+    rlst = S.toRankLst lst
+    uniquelst = nub lst
+    countel :: S.Card -> (S.Rank, Int)
+    countel card = ((S.toRank card), length [x | x <- rlst, (S.toRank card)==x])
+  in
+    map countel uniquelst
+  
+
+--mkFourOfAKind :: S.Hand -> MaybePokerHand
+--mkFourOfAKind hand =
+  
+
+           
 mkStraightFlush :: S.Hand -> Maybe PokerHand
 mkStraightFlush hand
   | (isMinHandSize hand)
