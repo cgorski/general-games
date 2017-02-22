@@ -13,7 +13,7 @@ main =
       l = cardLst
       n = numCards in
     do
-      putStrLn $ show cards
+--      putStrLn $ show cards
 --      putStrLn $ show min
 --      putStrLn $ show max
 --      putStrLn $ show l
@@ -23,8 +23,14 @@ main =
 --      putStrLn $ show (length allPossibleHands)
 --      putStrLn $ show (length allPossibleHands)
 --      putStrLn $ show (length allPossibleHands)
-      putStrLn $ show allRoyalFlush
+--      putStrLn $ show allRoyalFlush
+--      putStrLn $ show (length allRoyalFlush)
       putStrLn $ show (length allStraightFlush)
-      putStrLn $ show (length allFourOfAKind)
+      putStrLn $ show allStraightFlush
+
+--      putStrLn $ show (take 10 allStraight)
+--      putStrLn $ show allStraight
+--      putStrLn $ show (length allStraight)
+--      putStrLn $ show (length allFourOfAKind)
       
   

@@ -87,7 +87,7 @@ instance Show Card where
 instance C.StandardCard Card where
   toStandardCard = getStandardCard
   toRank c =
-    let (C.Card r _ ) = getStandardCard c
+    let (Card r _ ) = c
         in r
   toSuit c =
     let (C.Card _ s ) = getStandardCard c

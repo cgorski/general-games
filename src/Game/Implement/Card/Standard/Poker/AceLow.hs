@@ -11,33 +11,33 @@ instance Bounded Rank where
   maxBound = Rank C.King
 
 instance Enum Rank where
-  toEnum 1 = Rank C.Ace
-  toEnum 2 = Rank C.Two
-  toEnum 3 = Rank C.Three
-  toEnum 4 = Rank C.Four
-  toEnum 5 = Rank C.Five
-  toEnum 6 = Rank C.Six
-  toEnum 7 = Rank C.Seven
-  toEnum 8 = Rank C.Eight
-  toEnum 9 = Rank C.Nine
-  toEnum 10 = Rank C.Ten
-  toEnum 11 = Rank C.Jack
-  toEnum 12 = Rank C.Queen
-  toEnum 13 = Rank C.King
+  toEnum 0 = Rank C.Ace
+  toEnum 1 = Rank C.Two
+  toEnum 2 = Rank C.Three
+  toEnum 3 = Rank C.Four
+  toEnum 4 = Rank C.Five
+  toEnum 5 = Rank C.Six
+  toEnum 6 = Rank C.Seven
+  toEnum 7 = Rank C.Eight
+  toEnum 8 = Rank C.Nine
+  toEnum 9 = Rank C.Ten
+  toEnum 10 = Rank C.Jack
+  toEnum 11 = Rank C.Queen
+  toEnum 12 = Rank C.King
 
-  fromEnum (Rank C.Ace) = 1
-  fromEnum (Rank C.Two) = 2
-  fromEnum (Rank C.Three) = 3
-  fromEnum (Rank C.Four) = 4
-  fromEnum (Rank C.Five) = 5
-  fromEnum (Rank C.Six) = 6
-  fromEnum (Rank C.Seven) = 7
-  fromEnum (Rank C.Eight) = 8
-  fromEnum (Rank C.Nine) = 9
-  fromEnum (Rank C.Ten) = 10
-  fromEnum (Rank C.Jack) = 11
-  fromEnum (Rank C.Queen) = 12
-  fromEnum (Rank C.King) = 13
+  fromEnum (Rank C.Ace) = 0
+  fromEnum (Rank C.Two) = 1
+  fromEnum (Rank C.Three) = 2
+  fromEnum (Rank C.Four) = 3
+  fromEnum (Rank C.Five) = 4
+  fromEnum (Rank C.Six) = 5
+  fromEnum (Rank C.Seven) = 6
+  fromEnum (Rank C.Eight) = 7
+  fromEnum (Rank C.Nine) = 8
+  fromEnum (Rank C.Ten) = 9
+  fromEnum (Rank C.Jack) = 10
+  fromEnum (Rank C.Queen) = 11
+  fromEnum (Rank C.King) = 12
 
 instance Eq Rank where
   a == b = (fromEnum a) == (fromEnum b)

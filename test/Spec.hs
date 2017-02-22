@@ -2,7 +2,9 @@ import Test.HUnit
 import Game.Game.Poker
 import qualified Game.Implement.Card.Standard as S
 import qualified Game.Implement.Card.Standard.Poker.AceHigh as AH
-import Data.Set as DS
+import qualified Game.Implement.Card.Standard.Poker.AceHigh as AL
+import qualified Data.Set as DS
+import Data.List (sort)
 
 allHands = allPossibleHands
 allHandsCount = length allPossibleHands
@@ -14,6 +16,9 @@ royalFlushLst =
    S.Card S.King S.Hearts,
    S.Card S.Jack S.Hearts,
    S.Card S.Ten S.Hearts]
+
+royalFlushLstAH = AH.fromStandardCardLst royalFlushLst
+royalFlushLstAL = AL.fromStandardCardLst royalFlushLst
 
 sortedRoyalFlushLst =
   [S.Card S.Ace S.Hearts,
@@ -34,7 +39,9 @@ testSortHighToLow = TestCase (assertEqual "Is sorted from high to low"
                                sortedRoyalFlushLst
                                (sortHighToLow $ AH.fromStandardCardLst royalFlushLst))
 testIsSameSuit = TestCase (assertEqual "Is same suit" True (isSameSuit $ DS.fromList royalFlushLst))    
-                               
+--testHasConsecutiveRanks = TestCase (assertEqual "Is consecutive" True (AH.fromStdroyalFlush
+
+                 
 tests = TestList [
   TestLabel "Test for testPossibleHands" testPossibleHands,
   TestLabel "Test for testPossibleRoyalFlush" testPossibleRoyalFlush,
@@ -48,6 +55,8 @@ tests = TestList [
 main :: IO ()
 main =
   do
+    putStrLn $ show $ map (fromEnum . S.toRank) $ sort royalFlushLstAH
+    putStrLn $ show $ map (fromEnum . S.toRank) $ sort royalFlushLstAL
     counts <- runTestTT tests
     putStrLn $ show counts
     

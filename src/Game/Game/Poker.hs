@@ -92,14 +92,28 @@ isFourOfAKind :: S.Hand -> Bool
 isFourOfAKind hand
   | isJust $ mkFourOfAKind hand = True
   | otherwise = False
+
+mkStraight :: S.Hand -> Maybe PokerHand
+mkStraight hand
+  | (isMinHandSize hand)
+    && ((hasConsecutiveRanks (AH.fromStandardCardLst $ DS.toList hand))
+         || (hasConsecutiveRanks (AL.fromStandardCardLst $ DS.toList hand)))
+    && (not $ isRoyalFlush hand)
+    && (not $ isStraightFlush hand)
+  =
+      Just (Straight hand)
+  | otherwise = Nothing
+
+isStraight :: S.Hand -> Bool
+isStraight hand
+  | isJust $ mkStraight hand = True
+  | otherwise = False
                 
 mkStraightFlush :: S.Hand -> Maybe PokerHand
 mkStraightFlush hand
   | (isMinHandSize hand)
     && (isSameSuit hand)
-    && ((hasConsecutiveRanks (AH.fromStandardCardLst $ DS.toList hand))
-         || (hasConsecutiveRanks (AL.fromStandardCardLst $ DS.toList hand)))
-    && (not $ isRoyalFlush hand) =
+    && ((hasConsecutiveRanks (AH.fromStandardCardLst $ DS.toList hand))) =
       Just (StraightFlush hand)
   | otherwise = Nothing
 
@@ -152,6 +166,9 @@ allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 
 allStraightFlush :: [S.Hand]
 allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
+
+allStraight :: [S.Hand]
+allStraight = [x | x <- allPossibleHands, isStraight x]
 
 allFourOfAKind :: [S.Hand]
 allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
