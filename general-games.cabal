@@ -15,13 +15,13 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Game.Implement.Card.Standard
-                     , Game.Implement.Card.Standard.Poker.AceLow
-                     , Game.Implement.Card.Standard.Poker.AceHigh
-                     , Game.Game.Poker
+  exposed-modules:     Game.Implement.Card
+                     , Game.Implement.Card.Standard
+
   build-depends:       base >= 4.7 && < 5
                      , permutation
                      , containers
+                     , MonadRandom
   default-language:    Haskell2010
 
 executable general-games-exe
