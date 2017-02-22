@@ -3,53 +3,38 @@
 module Game.Implement.Card.Example
   where
 
-import Game.Implement.Card
+-- import Game.Implement.Card
 
-data ExampleCardType =
-  Card1 
-  | Card2
-  | Card3
-  | Card4
-  deriving (Enum, Eq, Ord, Bounded)
+-- data ExampleCardType = ExampleCardType Int String
+--   deriving (Eq, Ord, Bounded)
 
-data ExampleValueType = ValuePair Int Char deriving (Show, Eq)
+-- instance Bounded ExampleCardType where
+--   minBound = 1
+--   maxBound = 4
 
-data ExampleOrderingType = IntOrder | CharOrder
+-- instance Enum ExampleCardType where
+--   toEnum n = ExampleCardType n (replicate n 'a')
+--   fromEnum (ExampleCardType n c) = n
 
-instance Card ExampleCardType where
+-- --data ExampleValueType = ValuePair Int Char deriving (Show, Eq)
 
-instance OrderedCard ExampleCardType ExampleOrderingType where
-  compareCardBy IntOrder c1 c2 =
-    let
-      ValuePair n1 _ = toValue c1
-      ValuePair n2 _ = toValue c2
-    in
-      n1 `compare` n2
-  compareCardBy CharOrder c1 c2 =
-    let
-      ValuePair _ m1 = toValue c1
-      ValuePair _ m2 = toValue c2
-    in
-      m1 `compare` m2
-      
-instance ValuedCard ExampleCardType ExampleValueType where
-  toValue Card1 = ValuePair 1 'z'
-  toValue Card2 = ValuePair 2 'y'
-  toValue Card3 = ValuePair 3 'x'
-  toValue Card4 = ValuePair 4 'w'
+-- data ExampleOrderingType = IntOrder | CharOrder
 
-instance CardCollection ExampleCardType where
+-- instance Card ExampleCardType where
 
+-- instance OrderedCard ExampleCardType ExampleOrderingType where
+--   compareCardBy IntOrder (ExampleCardType i1 _) (ExampleCardType i2 _) = i1 `compare` i2
+--   compareCardBy CharOrder (ExampleCardType _ c1) (ExampleCardType _ c2) = c1 `compare` c2
 
+-- instance CardCollection ExampleCardType where
 
+-- deck :: [ExampleCardType]
+-- deck = fullDeck
 
-deck :: [ExampleCardType]
-deck = fullDeck
+-- --deck2 :: [ExampleValueType]
+-- --deck2 = map toValue deck
 
-deck2 :: [ExampleValueType]
-deck2 = map toValue deck
-
-comp = compareCardBy CharOrder (deck !! 1) (deck !! 2)
+-- comp = compareCardBy CharOrder (deck !! 1) (deck !! 2)
 
 
 

@@ -8,7 +8,7 @@ import Control.Monad.Random (MonadRandom, getRandomR)
 import Data.List (nub)
   
 class (Enum c, Eq c, Ord c, Bounded c) => Card c where
-
+  
 class (Card c) => ValuedCard c v where
   toValue :: c -> v
 

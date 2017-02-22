@@ -1,12 +1,13 @@
 module Main where
 
 import Game.Implement.Card.Standard
-import Game.Implement.Card.Example
+
 -- --import Game.Game.Poker
 
 main :: IO ()
 main = do
-  putStrLn (show $ ValuePair 1 'w')
+    putStrLn "foo"
+--  putStrLn (show $ ValuePair 1 'w')
 
 --   let r = Ace
 --       s = Clubs
