@@ -8,14 +8,6 @@ import Control.Monad.Random (MonadRandom, getRandomR)
 import Data.List (nub)
   
 class (Enum c, Eq c, Ord c, Bounded c) => Card c where
-  
-class (Card c) => ValuedCard c v where
-  toValue :: c -> v
-
-class (Card c) => OrderedCard c o where
-  compareCardBy :: o -> c -> c -> Ordering
-
-class Card c => CardCollection c where
   fullDeck :: [c]
   dedupe :: [c] -> [c]
   draw :: Int -> [c] -> Maybe ([c],[c])
@@ -24,4 +16,11 @@ class Card c => CardCollection c where
   draw n l
     | n > (length l) = Nothing
     | otherwise = Just (drop n l, take n l)
+  
+class (Card c) => ValuedCard c v where
+  toValue :: c -> v
+
+class (Card c) => OrderedCard c o where
+  compareCardBy :: o -> c -> c -> Ordering
+
 
