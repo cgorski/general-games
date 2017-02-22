@@ -1,7 +1,7 @@
 module Main where
 
 import Game.Implement.Card.Standard
-import Game.Implement.Card
+import Game.Implement.Card.Example
 -- --import Game.Game.Poker
 
 main :: IO ()
