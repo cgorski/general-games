@@ -5,8 +5,8 @@ module Game.Implement.Card
 
 import qualified Data.Set as DS
 import Control.Monad.Random (MonadRandom, getRandomR)
-import Data.List (nub)
-  
+import Data.List (nub, maximumBy, minimumBy)
+
 class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   fullDeck :: [c]
   dedupe :: [c] -> [c]
@@ -16,11 +16,11 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   draw n l
     | n > (length l) = Nothing
     | otherwise = Just (drop n l, take n l)
-  
-class (Card c) => ValuedCard c v where
-  toValue :: c -> v
 
 class (Card c) => OrderedCard c o where
+  highestCardBy :: o -> [c] -> c
+  lowestCardBy :: o -> [c] -> c
   compareCardBy :: o -> c -> c -> Ordering
-
+  highestCardBy o cl = maximumBy (compareCardBy o) cl
+  lowestCardBy o cl = minimumBy (compareCardBy o) cl
 

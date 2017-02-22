@@ -16,8 +16,9 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Game.Implement.Card
-                     , Game.Implement.Card.Example
                      , Game.Implement.Card.Standard
+                     , Game.Implement.Card.Standard.Poker
+                     , Game.Game.Poker
 
   build-depends:       base >= 4.7 && < 5
                      , permutation
