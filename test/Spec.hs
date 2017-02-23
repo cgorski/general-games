@@ -22,6 +22,14 @@ royalFlushNot =
    PlayingCard Jack Hearts,
    PlayingCard Ten Hearts]
 
+singlePair =
+  [PlayingCard Three Clubs,
+   PlayingCard Three Spades,
+   PlayingCard Eight Hearts,
+   PlayingCard Jack Hearts,
+   PlayingCard Ten Hearts]
+  
+
 
 -- royalFlushLstAH = AH.fromStandardCardLst royalFlushLst
 -- royalFlushLstAL = AL.fromStandardCardLst royalFlushLst
@@ -43,6 +51,7 @@ testPossibleFullHouse = TestCase (assertEqual "Total number of full houses" 3744
 testPossibleFlush = TestCase (assertEqual "Total number of flushes" 5108 (length allFlush))
 testPossibleStraight = TestCase (assertEqual "Total number of straights" 10200 (length allStraight))
 testPossibleThreeOfAKind = TestCase (assertEqual "Total number of three-of-a-kinds" 54912 (length allThreeOfAKind))
+testPossibleTwoPair = TestCase (assertEqual "Total number of two-pairs" 123552 (length allTwoPair))
 testMkRoyalFlush = TestCase (assertEqual "Is [AH, KH, QH, JH, TH] a Royal Flush" (Just $ PokerHand RoyalFlush sortedRoyalFlush) (mkRoyalFlush royalFlush))
 testIsRoyalFlush = TestCase (assertEqual "Is [AH, QH, KH, JH, TH] a Royal Flush" True (isRoyalFlush royalFlush))
 testIsRoyalFlushNot = TestCase (assertEqual "Is [AH, QH, 8H, JH, TH] a Royal Flush" False (isRoyalFlush royalFlushNot))
@@ -64,6 +73,7 @@ tests = TestList [
   TestLabel "Test for testPossibleFlush" testPossibleFlush,
   TestLabel "Test for testPossibleStraight" testPossibleStraight,
   TestLabel "Test for testPossibleThreeOfAKind" testPossibleThreeOfAKind,
+  TestLabel "Test for testTwoPair" testPossibleTwoPair,
   TestLabel "Test for mkRoyalFlush" testMkRoyalFlush,
   TestLabel "Test for isRoyalFlush" testIsRoyalFlush,
   TestLabel "Test for isRoyalFlushNot" testIsRoyalFlushNot
@@ -81,5 +91,7 @@ main =
     counts <- runTestTT tests
     putStrLn $ show counts
 --    putStrLn $ show $ sortCardsBy AceHighRankOrder royalFlush
+--    putStrLn $ show $ nOfRank singlePair
+--    putStrLn $ show $ hasNumNOfRank 2 2 singlePair
 
     

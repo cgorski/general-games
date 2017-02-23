@@ -78,13 +78,33 @@ nOfRank hand =
     countel :: PlayingCard -> (Rank, Int)
     countel card = ((toRank card), length [x | x <- rlst, (toRank card)==x])
   in
-    map countel uniquelst
+    nub $ map countel uniquelst
   
 hasNOfRank :: Int -> [PlayingCard] -> Bool
 hasNOfRank i hand =
   case (find (\(_,n) -> i == n) (nOfRank hand)) of
     Just _ -> True
     Nothing -> False
+
+hasNumNOfRank :: Int -> Int -> [PlayingCard] -> Bool
+hasNumNOfRank i num hand =
+  if (length (filter  (\(_,n) -> i == n) (nOfRank hand))) == num
+  then True
+  else False
+
+mkTwoPair :: [PlayingCard] -> Maybe PokerHand
+mkTwoPair hand
+  | (isMinHandSize hand)
+    && (hasNumNOfRank 2 2 hand)
+    && (not $ isFullHouse hand) =
+      Just (PokerHand TwoPair hand)
+  | otherwise = Nothing
+
+isTwoPair :: [PlayingCard] -> Bool
+isTwoPair hand
+  | isJust $ mkTwoPair hand = True
+  | otherwise = False
+
 
 mkThreeOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkThreeOfAKind hand
@@ -224,5 +244,8 @@ allStraight = [x | x <- allPossibleHands, isStraight x]
 
 allThreeOfAKind :: [[PlayingCard]]
 allThreeOfAKind = [x | x <- allPossibleHands, isThreeOfAKind x]
+
+allTwoPair :: [[PlayingCard]]
+allTwoPair = [x | x <- allPossibleHands, isTwoPair x]
 
 
