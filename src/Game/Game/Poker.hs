@@ -1,19 +1,18 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Game.Game.Poker
   where
 
+import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
--- import qualified Game.Implement.Card.Standard.Poker.AceHigh as AH
--- import qualified Game.Implement.Card.Standard.Poker.AceLow as AL
--- import qualified Data.Set as DS
+
 -- import Data.List (tails, sortBy, nub, find)
--- import Data.Maybe (isJust)
+import Data.Maybe (isJust)
 
 
-
-type RankHand = [PlayingCard]
+type RankHand = [PlayingCard] 
 type KickerHand = [PlayingCard]
-data RankKicker = RankHand KickerHand deriving(Eq)
+data RankKicker = RankHand KickerHand deriving(Eq,Show)
 
 data PokerHandType =
   HighCard 
@@ -28,8 +27,8 @@ data PokerHandType =
   | RoyalFlush 
   deriving(Eq,Show)
 
-data PokerHand = PokerHandType RankKicker
-
+data PokerHandSplit = PokerHandType RankKicker deriving(Eq,Show)
+data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
 -- mkBestHand :: S.Hand -> Maybe PokerHand
 -- mkBestHand hand
@@ -113,23 +112,23 @@ isSameSuit hand =
 --   | isJust $ mkStraightFlush hand = True
 --   | otherwise = False
 
--- mkRoyalFlush :: S.Hand -> Maybe PokerHand
--- mkRoyalFlush hand
---   | (isMinHandSize hand) && (isSameSuit hand) =
---       let
---         lst = DS.toList hand
---         slst = sortHighToLow $ AH.fromStandardCardLst lst
---         rlst = S.toRankLst slst
---       in
---         if (rlst == [S.Ace, S.King, S.Queen, S.Jack, S.Ten])
---         then Just (RoyalFlush (DS.fromList slst))
---         else Nothing
---   | otherwise = Nothing
+mkRoyalFlush :: [PlayingCard] -> Maybe PokerHand
+mkRoyalFlush hand
+  | (isMinHandSize hand) && (isSameSuit hand) =
+      let
+        slst :: [PlayingCard] = sortCardsBy AceHighRankOrder hand
+        rlst = toValueLst slst
+      in
+        if (rlst == [Ace, King, Queen, Jack, Ten])
+        then Just (PokerHand RoyalFlush slst)
+        else Nothing
+  | otherwise = Nothing
 
--- isRoyalFlush :: S.Hand -> Bool
--- isRoyalFlush hand
---   | isJust $ mkRoyalFlush hand = True
---   | otherwise = False
+
+isRoyalFlush :: [PlayingCard] -> Bool
+isRoyalFlush hand
+  | isJust $ mkRoyalFlush hand = True
+  | otherwise = False
 
 -- sortHighToLow :: S.OrderedCard o => [o] -> [S.Card]
 -- sortHighToLow lst = S.toStandardCardLst $ sortBy S.compareRank lst

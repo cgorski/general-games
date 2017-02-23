@@ -51,8 +51,17 @@ instance Enum PlayingCard where
 instance Show PlayingCard where
   show (PlayingCard r s) = (show r) ++ " of " ++ (show s)
 
+instance ValuedCard PlayingCard Rank where
+  toValue (PlayingCard r _) = r
+
+instance ValuedCard PlayingCard Suit where
+  toValue (PlayingCard _ s) = s
+
 toRank :: PlayingCard -> Rank
 toRank (PlayingCard r _) = r
+
+toRankLst :: [PlayingCard] -> [Rank]
+toRankLst cl = map toRank cl
 
 toSuit :: PlayingCard -> Suit
 toSuit (PlayingCard _ s) = s
