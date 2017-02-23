@@ -85,10 +85,10 @@ tests = TestList [
   TestLabel "Test for testTwoPair" testPossibleTwoPair,
   TestLabel "Test for testPair" testPossiblePair,
   TestLabel "Test for testHighCard" testPossibleHighCard,
-  TestLabel "Test for mkRoyalFlush" testMkRoyalFlush,
-  TestLabel "Test for isRoyalFlush" testIsRoyalFlush,
-  TestLabel "Test for isRoyalFlushNot" testIsRoyalFlushNot
-  ]
+  TestLabel "Test for mkRoyalFlush" testMkRoyalFlush]
+--  TestLabel "Test for isRoyalFlush" testIsRoyalFlush,
+--  TestLabel "Test for isRoyalFlushNot" testIsRoyalFlushNot
+
 --   TestLabel "Test for isMinHandSize royalFlush" testIsMinHandSize,
 --   TestLabel "Test for isMinHandSize singleton" testIsMinHandSize2,
 --   TestLabel "Test for sortHighToLow royalFlush" testSortHighToLow,

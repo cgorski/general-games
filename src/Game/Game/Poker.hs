@@ -33,7 +33,7 @@ data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
 -- mkBestHand :: S.Hand -> Maybe PokerHand
 -- mkBestHand hand
---   | isMinHandSize hand = Nothing
+--   | isPokerHandSize hand = Nothing
 --   | otherwise = mkHighCard hand
 
 
@@ -87,17 +87,18 @@ hasNumNOfRank i num hand =
 
 mkHighCard :: [PlayingCard] -> Maybe PokerHand
 mkHighCard hand
-  | isMinHandSize hand 
-    && (not $ isPair hand)
-    && (not $ isTwoPair hand)
-    && (not $ isThreeOfAKind hand)
-    && (not $ isStraight hand)
-    && (not $ isFlush hand)
-    && (not $ isFullHouse hand)
-    && (not $ isFourOfAKind hand)
-    && (not $ isStraightFlush hand)
-    && (not $ isRoyalFlush hand) =
-      Just (PokerHand HighCard hand)
+  | isPokerHandSize hand =
+      if (not $ isPair hand)
+         && (not $ isTwoPair hand)
+         && (not $ isThreeOfAKind hand)
+         && (not $ isStraight hand)
+         && (not $ isFlush hand)
+         && (not $ isFullHouse hand)
+         && (not $ isFourOfAKind hand)
+         && (not $ isStraightFlush hand)
+         && (not $ isRoyalFlush hand)
+      then Just (PokerHand HighCard hand)
+      else Nothing
   | otherwise = Nothing
       
 isHighCard :: [PlayingCard] -> Bool
@@ -108,10 +109,11 @@ isHighCard hand
 
 mkPair :: [PlayingCard] -> Maybe PokerHand
 mkPair hand
-  | (isMinHandSize hand)
-    && (hasNumNOfRank 2 1 hand)
-    && (not $ isFullHouse hand) =
-      Just (PokerHand Pair hand)
+  | isPokerHandSize hand =
+      if (hasNumNOfRank 2 1 hand)
+         && (not $ isFullHouse hand)
+      then Just (PokerHand Pair hand)
+      else Nothing
   | otherwise = Nothing
 
 isPair :: [PlayingCard] -> Bool
@@ -119,13 +121,13 @@ isPair hand
   | isJust $ mkPair hand = True
   | otherwise = False
 
-
 mkTwoPair :: [PlayingCard] -> Maybe PokerHand
 mkTwoPair hand
-  | (isMinHandSize hand)
-    && (hasNumNOfRank 2 2 hand)
-    && (not $ isFullHouse hand) =
-      Just (PokerHand TwoPair hand)
+  | isPokerHandSize hand =
+      if (hasNumNOfRank 2 2 hand)
+         && (not $ isFullHouse hand) 
+      then Just (PokerHand TwoPair hand)
+      else Nothing
   | otherwise = Nothing
 
 isTwoPair :: [PlayingCard] -> Bool
@@ -136,10 +138,11 @@ isTwoPair hand
 
 mkThreeOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkThreeOfAKind hand
-  | (isMinHandSize hand)
-    && (hasNOfRank 3 hand)
-    && (not $ isFullHouse hand) =
-      Just (PokerHand ThreeOfAKind hand)
+  | isPokerHandSize hand =
+      if (hasNOfRank 3 hand)
+         && (not $ isFullHouse hand)
+      then Just (PokerHand ThreeOfAKind hand)
+      else Nothing
   | otherwise = Nothing
 
 isThreeOfAKind :: [PlayingCard] -> Bool
@@ -150,12 +153,13 @@ isThreeOfAKind hand
 
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
-  | (isMinHandSize hand)
-    && ((hasConsecutiveRanks AceHighRankOrder hand)
-         || (hasConsecutiveRanks AceLowRankOrder hand))
-    && (not $ isRoyalFlush hand)
-    && (not $ isStraightFlush hand) =
-      Just (PokerHand Straight (sortCardsBy AceHighRankOrder hand))
+  | isPokerHandSize hand =
+      if ((hasConsecutiveRanks AceHighRankOrder hand)
+           || (hasConsecutiveRanks AceLowRankOrder hand))
+         && (not $ isRoyalFlush hand)
+         && (not $ isStraightFlush hand)
+      then Just (PokerHand Straight (sortCardsBy AceHighRankOrder hand))
+      else Nothing
   | otherwise = Nothing
 
 isStraight :: [PlayingCard] -> Bool
@@ -165,10 +169,12 @@ isStraight hand
 
 mkFlush :: [PlayingCard] -> Maybe PokerHand
 mkFlush hand
-  | (isMinHandSize hand) && (isSameSuit hand)
-    && (not $ isRoyalFlush hand)
-    && (not $ isStraightFlush hand) =
-      Just (PokerHand Flush (sortCardsBy AceHighRankOrder hand))
+  | isPokerHandSize hand =
+      if (isSameSuit hand)
+         && (not $ isRoyalFlush hand)
+         && (not $ isStraightFlush hand) 
+      then Just (PokerHand Flush (sortCardsBy AceHighRankOrder hand))
+      else Nothing
   | otherwise = Nothing
 
 isFlush :: [PlayingCard] -> Bool
@@ -176,12 +182,13 @@ isFlush hand
   | isJust $ mkFlush hand = True
   | otherwise = False
 
-
 mkFullHouse :: [PlayingCard] -> Maybe PokerHand
 mkFullHouse hand
-  | (isMinHandSize hand)
-    && (hasNOfRank 3 hand)
-    && (hasNOfRank 2 hand) = Just (PokerHand FullHouse hand)
+  | isPokerHandSize hand =
+      if (hasNOfRank 3 hand)
+         && (hasNOfRank 2 hand)
+      then Just (PokerHand FullHouse hand)
+      else Nothing
   | otherwise = Nothing
 
 isFullHouse :: [PlayingCard] -> Bool
@@ -191,8 +198,10 @@ isFullHouse hand
     
 mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkFourOfAKind hand
-  | (isMinHandSize hand)
-    && (hasNOfRank 4 hand) = Just (PokerHand FourOfAKind hand)
+  | isPokerHandSize hand = 
+      if (hasNOfRank 4 hand)
+      then Just (PokerHand FourOfAKind hand)
+      else Nothing
   | otherwise = Nothing
 
 isFourOfAKind :: [PlayingCard] -> Bool
@@ -202,10 +211,13 @@ isFourOfAKind hand
                 
 mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
 mkStraightFlush hand
-  | (isMinHandSize hand) && (isSameSuit hand)
-    && ((hasConsecutiveRanks AceHighRankOrder hand)
-         || (hasConsecutiveRanks AceLowRankOrder hand))
-    && (not $ isRoyalFlush hand) = Just (PokerHand StraightFlush (sortCardsBy AceHighRankOrder hand))
+  | isPokerHandSize hand =
+      if (isSameSuit hand)
+         && ((hasConsecutiveRanks AceHighRankOrder hand)
+              || (hasConsecutiveRanks AceLowRankOrder hand))
+         && (not $ isRoyalFlush hand)
+      then Just (PokerHand StraightFlush hand)
+      else Nothing     
   | otherwise = Nothing
 
 isStraightFlush :: [PlayingCard] -> Bool
@@ -215,14 +227,17 @@ isStraightFlush hand
 
 mkRoyalFlush :: [PlayingCard] -> Maybe PokerHand
 mkRoyalFlush hand
-  | (isMinHandSize hand) && (isSameSuit hand) =
-      let
-        slst :: [PlayingCard] = sortCardsBy AceHighRankOrder hand
-        rlst = toValueLst slst
-      in
-        if (rlst == [Ace, King, Queen, Jack, Ten])
-        then Just (PokerHand RoyalFlush slst)
-        else Nothing
+  | isPokerHandSize hand =
+      if (isSameSuit hand)
+      then
+        let
+          slst :: [PlayingCard] = sortCardsBy AceHighRankOrder hand
+          rlst = toValueLst slst
+        in
+          if (rlst == [Ace, King, Queen, Jack, Ten])
+          then Just (PokerHand RoyalFlush hand)
+          else Nothing
+      else Nothing
   | otherwise = Nothing
 
 
@@ -231,10 +246,10 @@ isRoyalFlush hand
   | isJust $ mkRoyalFlush hand = True
   | otherwise = False
 
-isMinHandSize :: [PlayingCard] -> Bool
-isMinHandSize hand 
-   | (length hand) < 5 = False
-   | otherwise = True
+isPokerHandSize :: [PlayingCard] -> Bool
+isPokerHandSize hand 
+   | (length hand) == 5 = True
+   | otherwise = False
 
 choose :: Ord r => Int -> [r] -> [[r]]
 choose 0 lst = [[]]
