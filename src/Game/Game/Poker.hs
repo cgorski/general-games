@@ -92,6 +92,20 @@ hasNumNOfRank i num hand =
   then True
   else False
 
+mkPair :: [PlayingCard] -> Maybe PokerHand
+mkPair hand
+  | (isMinHandSize hand)
+    && (hasNumNOfRank 2 1 hand)
+    && (not $ isFullHouse hand) =
+      Just (PokerHand Pair hand)
+  | otherwise = Nothing
+
+isPair :: [PlayingCard] -> Bool
+isPair hand
+  | isJust $ mkPair hand = True
+  | otherwise = False
+
+
 mkTwoPair :: [PlayingCard] -> Maybe PokerHand
 mkTwoPair hand
   | (isMinHandSize hand)
@@ -247,5 +261,8 @@ allThreeOfAKind = [x | x <- allPossibleHands, isThreeOfAKind x]
 
 allTwoPair :: [[PlayingCard]]
 allTwoPair = [x | x <- allPossibleHands, isTwoPair x]
+
+allPair :: [[PlayingCard]]
+allPair = [x | x <- allPossibleHands, isPair x]
 
 
