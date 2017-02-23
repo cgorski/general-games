@@ -73,9 +73,8 @@ hasConsecutiveRanks order hand =
 nOfRank :: [PlayingCard] -> [(Rank, Int)]
 nOfRank hand =
   let
-    lst = hand
-    rlst = toRankLst lst
-    uniquelst = nub lst
+    rlst = toRankLst hand
+    uniquelst = nub hand
     countel :: PlayingCard -> (Rank, Int)
     countel card = ((toRank card), length [x | x <- rlst, (toRank card)==x])
   in
@@ -86,6 +85,20 @@ hasNOfRank i hand =
   case (find (\(_,n) -> i == n) (nOfRank hand)) of
     Just _ -> True
     Nothing -> False
+
+mkThreeOfAKind :: [PlayingCard] -> Maybe PokerHand
+mkThreeOfAKind hand
+  | (isMinHandSize hand)
+    && (hasNOfRank 3 hand)
+    && (not $ isFullHouse hand) =
+      Just (PokerHand ThreeOfAKind hand)
+  | otherwise = Nothing
+
+isThreeOfAKind :: [PlayingCard] -> Bool
+isThreeOfAKind hand
+  | isJust $ mkThreeOfAKind hand = True
+  | otherwise = False
+
 
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
@@ -102,6 +115,31 @@ isStraight hand
   | isJust $ mkStraight hand = True
   | otherwise = False
 
+mkFlush :: [PlayingCard] -> Maybe PokerHand
+mkFlush hand
+  | (isMinHandSize hand) && (isSameSuit hand)
+    && (not $ isRoyalFlush hand)
+    && (not $ isStraightFlush hand) =
+      Just (PokerHand Flush (sortCardsBy AceHighRankOrder hand))
+  | otherwise = Nothing
+
+isFlush :: [PlayingCard] -> Bool
+isFlush hand
+  | isJust $ mkFlush hand = True
+  | otherwise = False
+
+
+mkFullHouse :: [PlayingCard] -> Maybe PokerHand
+mkFullHouse hand
+  | (isMinHandSize hand)
+    && (hasNOfRank 3 hand)
+    && (hasNOfRank 2 hand) = Just (PokerHand FullHouse hand)
+  | otherwise = Nothing
+
+isFullHouse :: [PlayingCard] -> Bool
+isFullHouse hand
+  | isJust $ mkFullHouse hand = True
+  | otherwise = False
     
 mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkFourOfAKind hand
@@ -172,9 +210,19 @@ allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 allStraightFlush :: [[PlayingCard]]
 allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
 
+allFourOfAKind :: [[PlayingCard]]
+allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
+
+allFullHouse :: [[PlayingCard]]
+allFullHouse = [x | x <- allPossibleHands, isFullHouse x]
+
+allFlush :: [[PlayingCard]]
+allFlush = [x | x <- allPossibleHands, isFlush x]
+
 allStraight :: [[PlayingCard]]
 allStraight = [x | x <- allPossibleHands, isStraight x]
 
-allFourOfAKind :: [[PlayingCard]]
-allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
+allThreeOfAKind :: [[PlayingCard]]
+allThreeOfAKind = [x | x <- allPossibleHands, isThreeOfAKind x]
+
 
