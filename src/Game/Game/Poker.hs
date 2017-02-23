@@ -86,6 +86,22 @@ hasNOfRank i hand =
   case (find (\(_,n) -> i == n) (nOfRank hand)) of
     Just _ -> True
     Nothing -> False
+
+mkStraight :: [PlayingCard] -> Maybe PokerHand
+mkStraight hand
+  | (isMinHandSize hand)
+    && ((hasConsecutiveRanks AceHighRankOrder hand)
+         || (hasConsecutiveRanks AceLowRankOrder hand))
+    && (not $ isRoyalFlush hand)
+    && (not $ isStraightFlush hand) =
+      Just (PokerHand Straight (sortCardsBy AceHighRankOrder hand))
+  | otherwise = Nothing
+
+isStraight :: [PlayingCard] -> Bool
+isStraight hand
+  | isJust $ mkStraight hand = True
+  | otherwise = False
+
     
 mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkFourOfAKind hand
@@ -155,6 +171,9 @@ allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 
 allStraightFlush :: [[PlayingCard]]
 allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
+
+allStraight :: [[PlayingCard]]
+allStraight = [x | x <- allPossibleHands, isStraight x]
 
 allFourOfAKind :: [[PlayingCard]]
 allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
