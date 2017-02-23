@@ -1,5 +1,5 @@
 name:                general-games
-version:             0.1.0.0
+version:             0.2.0
 synopsis:            Library supporting simulation of a number of games
 homepage:            https://github.com/cgorski/general-games
 bug-reports:         https://github.com/cgorski/general-games/issues
@@ -44,7 +44,7 @@ test-suite general-games-test
                      , containers
                      , HUnit
                      
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N4
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N4
   default-language:    Haskell2010
 
 source-repository head
