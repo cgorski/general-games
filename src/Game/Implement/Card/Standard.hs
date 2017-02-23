@@ -1,8 +1,9 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Game.Implement.Card.Standard
   where
 
-import qualified Data.Set as DS
-
+import Game.Implement.Card
 
 data Rank =
   Ace |
@@ -18,105 +19,53 @@ data Rank =
   Jack |
   Queen |
   King
-  deriving (Show)
+  deriving (Show, Enum, Eq, Ord, Bounded)
 
-instance Bounded Rank where
-  minBound = Ace
-  maxBound = King
-
-instance Enum Rank where 
-  toEnum 0 = Ace
-  toEnum 1 = Two
-  toEnum 2 = Three
-  toEnum 3 = Four
-  toEnum 4 = Five
-  toEnum 5 = Six
-  toEnum 6 = Seven
-  toEnum 7 = Eight
-  toEnum 8 = Nine
-  toEnum 9 = Ten
-  toEnum 10 = Jack
-  toEnum 11 = Queen
-  toEnum 12 = King
-
-  fromEnum Ace = 0
-  fromEnum Two = 1
-  fromEnum Three = 2
-  fromEnum Four = 3
-  fromEnum Five = 4
-  fromEnum Six = 5
-  fromEnum Seven = 6
-  fromEnum Eight = 7
-  fromEnum Nine = 8
-  fromEnum Ten = 9
-  fromEnum Jack = 10
-  fromEnum Queen = 11
-  fromEnum King = 12
-
-instance Eq Rank where
-  a == b = (fromEnum a) == (fromEnum b)
-
-instance Ord Rank where
-  compare a b = (fromEnum a) `compare` (fromEnum b)
+ranks = [minBound .. maxBound] :: [Rank]
+nRanks = length ranks 
 
 data Suit =
   Clubs |
   Diamonds |
   Hearts |
   Spades
-  deriving (Eq, Ord, Bounded, Enum, Show)
+  deriving (Show, Enum, Eq, Ord, Bounded)
+
+suits = [minBound .. maxBound] :: [Suit]
+nSuits = length suits
+
+instance Card PlayingCard where
+
+data PlayingCard = PlayingCard Rank Suit deriving (Eq, Ord, Bounded)
+data Value = RankValue | SuitValue deriving (Eq)
+
+instance Enum PlayingCard where
+  fromEnum (PlayingCard r s) =
+      (fromEnum r)+((fromEnum s)*nRanks)
+  toEnum n =
+    let r = n `mod` nRanks
+        s = n `mod` 4
+    in
+      (PlayingCard (toEnum r) (toEnum s))
+
+instance Show PlayingCard where
+  show (PlayingCard r s) = (show r) ++ " of " ++ (show s)
+
+instance ValuedCard PlayingCard Rank where
+  toValue (PlayingCard r _) = r
+
+toRank :: PlayingCard -> Rank
+toRank (PlayingCard r _) = r
+
+instance ValuedCard PlayingCard Suit where
+  toValue (PlayingCard _ s) = s
+
+toSuit :: PlayingCard -> Suit
+toSuit (PlayingCard _ s) = s
 
 
-data Card = Card Rank Suit 
-
-instance Eq Card where
-  (Card r s) == (Card r1 s1) = (r == r1) && (s == s1)
-
-instance Ord Card where
-  compare (Card r s) (Card r1 s1)
-    | s == s1 = r `compare` r1
-    | otherwise = s `compare` s1
 
 
 
-mkCard :: Rank -> Suit -> Card
-mkCard r s = Card r s
-
-instance Show Card where
-  show (Card r s) = (show r) ++ " of " ++ (show s)
-
-rankLst :: [Rank]
-rankLst = [minBound .. maxBound]
-
-suitLst :: [Suit]
-suitLst = [minBound .. maxBound]
-
-cardLst :: [Card]
-cardLst = [Card r s | s <- suitLst, r <- rankLst]
-
-numCards :: Int
-numCards = length cardLst
-
-class StandardCard a where
-  toStandardCard :: a -> Card
-  toStandardCardLst :: [a] -> [Card]
-  toRank :: a -> Rank
-  toRankLst :: [a] -> [Rank]
-  toSuit :: a -> Suit
-  toSuitLst :: [a] -> [Suit]
-  toStandardCardLst lst = map toStandardCard lst
-  toRankLst lst = map toRank lst
-  toSuitLst lst = map toSuit lst
-
-class (Eq a, Ord a, StandardCard a) => OrderedCard a where
-  compareRank :: a -> a -> Ordering
-  compareSuit :: a -> a -> Ordering
-
-instance StandardCard Card where
-  toStandardCard a = a
-  toRank (Card r _) = r
-  toSuit (Card _ s) = s
-
-type Hand = DS.Set Card
 
 
