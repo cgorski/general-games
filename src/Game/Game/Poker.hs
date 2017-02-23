@@ -36,13 +36,6 @@ data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 --   | isMinHandSize hand = Nothing
 --   | otherwise = mkHighCard hand
 
--- mkHighCard :: S.Hand -> Maybe PokerHand
--- mkHighCard hand
---   | isMinHandSize hand = Nothing
---   | otherwise = 
---       let highCard = maximum hand
---           kickers = DS.deleteMax hand in
---         Just $ HighCard highCard kickers
 
 isSameSuit :: [PlayingCard] -> Bool
 isSameSuit hand =
@@ -91,6 +84,27 @@ hasNumNOfRank i num hand =
   if (length (filter  (\(_,n) -> i == n) (nOfRank hand))) == num
   then True
   else False
+
+mkHighCard :: [PlayingCard] -> Maybe PokerHand
+mkHighCard hand
+  | isMinHandSize hand 
+    && (not $ isPair hand)
+    && (not $ isTwoPair hand)
+    && (not $ isThreeOfAKind hand)
+    && (not $ isStraight hand)
+    && (not $ isFlush hand)
+    && (not $ isFullHouse hand)
+    && (not $ isFourOfAKind hand)
+    && (not $ isStraightFlush hand)
+    && (not $ isRoyalFlush hand) =
+      Just (PokerHand HighCard hand)
+  | otherwise = Nothing
+      
+isHighCard :: [PlayingCard] -> Bool
+isHighCard hand
+  | isJust $ mkHighCard hand = True
+  | otherwise = False
+
 
 mkPair :: [PlayingCard] -> Maybe PokerHand
 mkPair hand
@@ -217,12 +231,6 @@ isRoyalFlush hand
   | isJust $ mkRoyalFlush hand = True
   | otherwise = False
 
--- sortHighToLow :: S.OrderedCard o => [o] -> [S.Card]
--- sortHighToLow lst = S.toStandardCardLst $ sortBy S.compareRank lst
-
--- standardLstToHand :: S.StandardCard s => [s] -> S.Hand
--- standardLstToHand lst = DS.fromList $ S.toStandardCardLst lst
-
 isMinHandSize :: [PlayingCard] -> Bool
 isMinHandSize hand 
    | (length hand) < 5 = False
@@ -264,5 +272,8 @@ allTwoPair = [x | x <- allPossibleHands, isTwoPair x]
 
 allPair :: [[PlayingCard]]
 allPair = [x | x <- allPossibleHands, isPair x]
+
+allHighCard :: [[PlayingCard]]
+allHighCard = [x | x <- allPossibleHands, isHighCard x]
 
 
