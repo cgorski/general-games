@@ -7,6 +7,16 @@ import Game.Implement.Card.Standard.Poker
 -- allHands = allPossibleHands
 allHandsCount = length allPossibleHands
 allHandsCountExpected = 2598960
+allRoyalFlushCountExpected = 4
+allStraightFlushCountExpected = 36
+allFourOfAKindCountExpected = 624
+allFullHouseCountExpected = 3744
+allFlushCountExpected = 5108
+allStraightCountExpected = 10200
+allThreeOfAKindCountExpected = 54912
+allTwoPairCountExpected = 123552
+allPairCountExpected = 1098240
+allHighCardCountExpected = 1302540
 
 royalFlush =
   [PlayingCard Ace Hearts,
@@ -36,11 +46,6 @@ twoPair =
    PlayingCard Four Diamonds,
    PlayingCard Ten Hearts]
 
-
-
--- royalFlushLstAH = AH.fromStandardCardLst royalFlushLst
--- royalFlushLstAL = AL.fromStandardCardLst royalFlushLst
-
 sortedRoyalFlush =
   [PlayingCard Ace Hearts,
    PlayingCard King Hearts,
@@ -48,32 +53,28 @@ sortedRoyalFlush =
    PlayingCard Jack Hearts,
    PlayingCard Ten Hearts]
 
-
-  
-testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
-testPossibleRoyalFlush = TestCase (assertEqual "Total number of royal flushes" 4 (length allRoyalFlush))
-testPossibleStraightFlush = TestCase (assertEqual "Total number of straight flushes" 36 (length allStraightFlush))
-testPossibleFourOfAKind = TestCase (assertEqual "Total number of four-of-a-kinds" 624 (length allFourOfAKind))
-testPossibleFullHouse = TestCase (assertEqual "Total number of full houses" 3744 (length allFullHouse))
-testPossibleFlush = TestCase (assertEqual "Total number of flushes" 5108 (length allFlush))
-testPossibleStraight = TestCase (assertEqual "Total number of straights" 10200 (length allStraight))
-testPossibleThreeOfAKind = TestCase (assertEqual "Total number of three-of-a-kinds" 54912 (length allThreeOfAKind))
-testPossibleTwoPair = TestCase (assertEqual "Total number of two-pairs" 123552 (length allTwoPair))
-testPossiblePair = TestCase (assertEqual "Total number of pairs" 1098240 (length allPair))
-testPossibleHighCard = TestCase (assertEqual "Total number of high cards" 1302540 (length allHighCard))
-testMkRoyalFlush = TestCase (assertEqual "Is [AH, KH, QH, JH, TH] a Royal Flush" (Just $ PokerHand RoyalFlush sortedRoyalFlush) (mkRoyalFlush royalFlush))
 testIsRoyalFlush = TestCase (assertEqual "Is [AH, QH, KH, JH, TH] a Royal Flush" True (isRoyalFlush royalFlush))
 testIsRoyalFlushNot = TestCase (assertEqual "Is [AH, QH, 8H, JH, TH] a Royal Flush" False (isRoyalFlush royalFlushNot))
--- testIsMinHandSize = TestCase (assertEqual "Is min size of 5" True (isMinHandSize royalFlush))
--- testIsMinHandSize2 = TestCase (assertEqual "Is min size of 5" False (isMinHandSize $ DS.fromList [S.Card S.Ace S.Spades]))
--- testSortHighToLow = TestCase (assertEqual "Is sorted from high to low"
---                                sortedRoyalFlushLst
---                                (sortHighToLow $ AH.fromStandardCardLst royalFlushLst))
--- testIsSameSuit = TestCase (assertEqual "Is same suit" True (isSameSuit $ DS.fromList royalFlushLst))    
--- --testHasConsecutiveRanks = TestCase (assertEqual "Is consecutive" True (AH.fromStdroyalFlush
+
+testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
+testPossibleRoyalFlush = TestCase (assertEqual "Total number of royal flushes" allRoyalFlushCountExpected (length allRoyalFlush))
+testPossibleStraightFlush = TestCase (assertEqual "Total number of straight flushes" allStraightFlushCountExpected (length allStraightFlush))
+testPossibleFourOfAKind = TestCase (assertEqual "Total number of four-of-a-kinds" allFourOfAKindCountExpected (length allFourOfAKind))
+testPossibleFullHouse = TestCase (assertEqual "Total number of full houses" allFullHouseCountExpected (length allFullHouse))
+testPossibleFlush = TestCase (assertEqual "Total number of flushes" allFlushCountExpected (length allFlush))
+testPossibleStraight = TestCase (assertEqual "Total number of straights" allStraightCountExpected (length allStraight))
+testPossibleThreeOfAKind = TestCase (assertEqual "Total number of three-of-a-kinds" allThreeOfAKindCountExpected (length allThreeOfAKind))
+testPossibleTwoPair = TestCase (assertEqual "Total number of two-pairs" allTwoPairCountExpected (length allTwoPair))
+testPossiblePair = TestCase (assertEqual "Total number of pairs" allPairCountExpected (length allPair))
+testPossibleHighCard = TestCase (assertEqual "Total number of high cards" allHighCardCountExpected (length allHighCard))
+
 
                  
 tests = TestList [
+  -- Test boolean hand checks
+  TestLabel "Test for testIsRoyalFlush" testIsRoyalFlush,
+  
+  -- Test that hand calculation counts match correct values
   TestLabel "Test for testPossibleHands" testPossibleHands,
   TestLabel "Test for testPossibleRoyalFlush" testPossibleRoyalFlush,
   TestLabel "Test for testPossibleStraightFlush" testPossibleStraightFlush,
@@ -84,27 +85,14 @@ tests = TestList [
   TestLabel "Test for testPossibleThreeOfAKind" testPossibleThreeOfAKind,
   TestLabel "Test for testTwoPair" testPossibleTwoPair,
   TestLabel "Test for testPair" testPossiblePair,
-  TestLabel "Test for testHighCard" testPossibleHighCard]
---  TestLabel "Test for mkRoyalFlush" testMkRoyalFlush]
---  TestLabel "Test for isRoyalFlush" testIsRoyalFlush,
---  TestLabel "Test for isRoyalFlushNot" testIsRoyalFlushNot
+  TestLabel "Test for testHighCard" testPossibleHighCard
+  ]
 
---   TestLabel "Test for isMinHandSize royalFlush" testIsMinHandSize,
---   TestLabel "Test for isMinHandSize singleton" testIsMinHandSize2,
---   TestLabel "Test for sortHighToLow royalFlush" testSortHighToLow,
---   TestLabel "Test for isSameSuit royalFlush" testIsSameSuit]
 main :: IO ()
 main =
   do
---    putStrLn $ show $ map (fromEnum . S.toRank) $ sort royalFlushLstAH
---    putStrLn $ show $ map (fromEnum . S.toRank) $ sort royalFlushLstAL
---    putStrLn $ show $ allFourOfAKind
     counts <- runTestTT tests
     putStrLn $ show counts
---    putStrLn $ show $ sortCardsBy AceHighRankOrder royalFlush
---    putStrLn $ show $ nOfRank singlePair
---    putStrLn $ show $ nOfRank twoPair
---    putStrLn $ show $ hasNumNOfRank 2 1 singlePair
---    putStrLn $ show $ hasNumNOfRank 2 2 twoPair
+
 
     
