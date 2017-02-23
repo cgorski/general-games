@@ -7,7 +7,7 @@ import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 
-import Data.List (tails) --, sortBy, nub, find)
+import Data.List (tails,nub,find) --, sortBy, nub, find)
 import Data.Maybe (isJust)
 
 
@@ -70,33 +70,33 @@ hasConsecutiveRanks order hand =
       Nothing -> False
       _ -> True
 
--- nOfRank :: S.Hand -> [(S.Rank, Int)]
--- nOfRank hand =
---   let
---     lst = DS.toList hand
---     rlst = S.toRankLst lst
---     uniquelst = nub lst
---     countel :: S.Card -> (S.Rank, Int)
---     countel card = ((S.toRank card), length [x | x <- rlst, (S.toRank card)==x])
---   in
---     map countel uniquelst
+nOfRank :: [PlayingCard] -> [(Rank, Int)]
+nOfRank hand =
+  let
+    lst = hand
+    rlst = toRankLst lst
+    uniquelst = nub lst
+    countel :: PlayingCard -> (Rank, Int)
+    countel card = ((toRank card), length [x | x <- rlst, (toRank card)==x])
+  in
+    map countel uniquelst
   
--- hasNOfRank :: Int -> S.Hand -> Bool
--- hasNOfRank i hand =
---   case (find (\(_,n) -> i == n) (DS.fromList $ nOfRank hand)) of
---     Just _ -> True
---     Nothing -> False
+hasNOfRank :: Int -> [PlayingCard] -> Bool
+hasNOfRank i hand =
+  case (find (\(_,n) -> i == n) (nOfRank hand)) of
+    Just _ -> True
+    Nothing -> False
     
--- mkFourOfAKind :: S.Hand -> Maybe PokerHand
--- mkFourOfAKind hand
---   | (isMinHandSize hand)
---     && (hasNOfRank 4 hand) = Just (FourOfAKind hand)
---   | otherwise = Nothing
+mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
+mkFourOfAKind hand
+  | (isMinHandSize hand)
+    && (hasNOfRank 4 hand) = Just (PokerHand FourOfAKind hand)
+  | otherwise = Nothing
 
--- isFourOfAKind :: S.Hand -> Bool
--- isFourOfAKind hand
---   | isJust $ mkFourOfAKind hand = True
---   | otherwise = False
+isFourOfAKind :: [PlayingCard] -> Bool
+isFourOfAKind hand
+  | isJust $ mkFourOfAKind hand = True
+  | otherwise = False
                 
 mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
 mkStraightFlush hand
@@ -156,6 +156,6 @@ allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 allStraightFlush :: [[PlayingCard]]
 allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
 
--- allFourOfAKind :: [S.Hand]
--- allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
+allFourOfAKind :: [[PlayingCard]]
+allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
 
