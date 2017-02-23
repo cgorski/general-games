@@ -2,7 +2,7 @@
 
 * [Description](#description)
 * [Contribute](#contribute)
-* [Licence](#licence)
+* [License](#license)
 
 ## Description
 
@@ -14,6 +14,6 @@ Library providing framework for simulating outcomes of a variety of games, inclu
 For any problems, comments, or feedback please create an issue [here on GitHub](https://github.com/cgorski/general-games/issues).
 
 
-## Licence
+## License
 
 `general-games` is released under the [MIT License](https://opensource.org/licenses/MIT).
