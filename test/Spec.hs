@@ -84,8 +84,8 @@ tests = TestList [
   TestLabel "Test for testPossibleThreeOfAKind" testPossibleThreeOfAKind,
   TestLabel "Test for testTwoPair" testPossibleTwoPair,
   TestLabel "Test for testPair" testPossiblePair,
-  TestLabel "Test for testHighCard" testPossibleHighCard,
-  TestLabel "Test for mkRoyalFlush" testMkRoyalFlush]
+  TestLabel "Test for testHighCard" testPossibleHighCard]
+--  TestLabel "Test for mkRoyalFlush" testMkRoyalFlush]
 --  TestLabel "Test for isRoyalFlush" testIsRoyalFlush,
 --  TestLabel "Test for isRoyalFlushNot" testIsRoyalFlushNot
 

@@ -33,7 +33,7 @@ library
                      , containers
                      , MonadRandom
   default-language:    Haskell2010
---  ghc-options:         -Wall
+  ghc-options:         -Wall -Werror -O2
 
 test-suite general-games-test
   type:                exitcode-stdio-1.0
@@ -44,7 +44,7 @@ test-suite general-games-test
                      , containers
                      , HUnit
                      
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N4
   default-language:    Haskell2010
 
 source-repository head

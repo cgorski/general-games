@@ -3,8 +3,6 @@
 module Game.Implement.Card
   where
 
-import qualified Data.Set as DS
-import Control.Monad.Random (MonadRandom, getRandomR)
 import Data.List (nub, maximumBy, minimumBy, sortBy)
 
 class (Enum c, Eq c, Ord c, Bounded c) => Card c where

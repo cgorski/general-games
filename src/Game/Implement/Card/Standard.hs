@@ -21,7 +21,10 @@ data Rank =
   King
   deriving (Show, Enum, Eq, Ord, Bounded)
 
-ranks = [minBound .. maxBound] :: [Rank]
+ranks :: [Rank]
+ranks = [minBound .. maxBound]
+
+nRanks :: Int
 nRanks = length ranks 
 
 data Suit =
@@ -31,7 +34,10 @@ data Suit =
   Spades
   deriving (Show, Enum, Eq, Ord, Bounded)
 
-suits = [minBound .. maxBound] :: [Suit]
+suits :: [Suit]
+suits = [minBound .. maxBound]
+
+nSuits :: Int
 nSuits = length suits
 
 instance Card PlayingCard where

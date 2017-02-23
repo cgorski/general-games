@@ -44,7 +44,7 @@ isSameSuit hand =
       if (toSuit c0) == (toSuit c1)
       then Just c1
       else Nothing
-    ff Nothing _ = Nothing
+    ff _ _ = Nothing
   in
     case foldl1 ff $ map (\x -> Just x) hand of
       Nothing -> False
@@ -53,11 +53,11 @@ isSameSuit hand =
 hasConsecutiveRanks :: Order -> [PlayingCard] -> Bool
 hasConsecutiveRanks order hand =
   let handlst = map (\x -> Just x) $ sortCardsBy order hand
-      ff Nothing _ = Nothing
       ff (Just c0) (Just c1) =
         case (toOrderedValue order RankValueType c0)-(toOrderedValue order RankValueType c1) of
           1 -> Just c1
           _ -> Nothing
+      ff _ _ = Nothing
   in
     case foldl1 ff handlst of
       Nothing -> False
@@ -252,7 +252,7 @@ isPokerHandSize hand
    | otherwise = False
 
 choose :: Ord r => Int -> [r] -> [[r]]
-choose 0 lst = [[]]
+choose 0 _ = [[]]
 choose n lst = do
   (x:xs) <- tails lst
   rest <- choose (n-1) xs
