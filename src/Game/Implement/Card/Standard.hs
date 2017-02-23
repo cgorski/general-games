@@ -54,17 +54,15 @@ instance Show PlayingCard where
 instance ValuedCard PlayingCard Rank where
   toValue (PlayingCard r _) = r
 
-instance ValuedCard PlayingCard Suit where
-  toValue (PlayingCard _ s) = s
-
 toRank :: PlayingCard -> Rank
 toRank (PlayingCard r _) = r
 
-toRankLst :: [PlayingCard] -> [Rank]
-toRankLst cl = map toRank cl
+instance ValuedCard PlayingCard Suit where
+  toValue (PlayingCard _ s) = s
 
 toSuit :: PlayingCard -> Suit
 toSuit (PlayingCard _ s) = s
+
 
 
 

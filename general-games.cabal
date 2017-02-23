@@ -25,6 +25,7 @@ library
                      , containers
                      , MonadRandom
   default-language:    Haskell2010
+--  ghc-options:         -Wall
 
 executable general-games-exe
   hs-source-dirs:      app

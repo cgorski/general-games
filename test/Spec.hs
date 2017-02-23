@@ -5,8 +5,8 @@ import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 
 -- allHands = allPossibleHands
--- allHandsCount = length allPossibleHands
--- allHandsCountExpected = 2598960
+allHandsCount = length allPossibleHands
+allHandsCountExpected = 2598960
 
 royalFlush =
   [PlayingCard Ace Hearts,
@@ -35,9 +35,9 @@ sortedRoyalFlush =
 
 
   
--- testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
--- testPossibleRoyalFlush = TestCase (assertEqual "Total number of royal flushes" 4 (length allRoyalFlush))
--- testPossibleStraightFlush = TestCase (assertEqual "Total number of straight flushes" 36 (length allStraightFlush))
+testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
+testPossibleRoyalFlush = TestCase (assertEqual "Total number of royal flushes" 4 (length allRoyalFlush))
+testPossibleStraightFlush = TestCase (assertEqual "Total number of straight flushes" 36 (length allStraightFlush))
 testMkRoyalFlush = TestCase (assertEqual "Is [AH, KH, QH, JH, TH] a Royal Flush" (Just $ PokerHand RoyalFlush sortedRoyalFlush) (mkRoyalFlush royalFlush))
 testIsRoyalFlush = TestCase (assertEqual "Is [AH, QH, KH, JH, TH] a Royal Flush" True (isRoyalFlush royalFlush))
 testIsRoyalFlushNot = TestCase (assertEqual "Is [AH, QH, 8H, JH, TH] a Royal Flush" False (isRoyalFlush royalFlushNot))
@@ -51,9 +51,9 @@ testIsRoyalFlushNot = TestCase (assertEqual "Is [AH, QH, 8H, JH, TH] a Royal Flu
 
                  
 tests = TestList [
---   TestLabel "Test for testPossibleHands" testPossibleHands,
---   TestLabel "Test for testPossibleRoyalFlush" testPossibleRoyalFlush,
---   TestLabel "Test for testPossibleStraightFlush" testPossibleStraightFlush,
+  TestLabel "Test for testPossibleHands" testPossibleHands,
+  TestLabel "Test for testPossibleRoyalFlush" testPossibleRoyalFlush,
+  TestLabel "Test for testPossibleStraightFlush" testPossibleStraightFlush,
   TestLabel "Test for mkRoyalFlush" testMkRoyalFlush,
   TestLabel "Test for isRoyalFlush" testIsRoyalFlush,
   TestLabel "Test for isRoyalFlushNot" testIsRoyalFlushNot
@@ -69,5 +69,6 @@ main =
 --    putStrLn $ show $ map (fromEnum . S.toRank) $ sort royalFlushLstAL
     counts <- runTestTT tests
     putStrLn $ show counts
-    putStrLn $ show $ sortCardsBy AceHighRankOrder royalFlush
+--    putStrLn $ show $ sortCardsBy AceHighRankOrder royalFlush
+    putStrLn $ show $ allStraightFlush
     

@@ -31,3 +31,7 @@ class (Card c) => OrderedCard c o where
   lowestCardBy o cl = minimumBy (compareCardBy o) cl
   sortCardsBy o cl = sortBy (compareCardBy o) cl
 
+class (OrderedCard c o) => OrderedValuedCard c o vt where
+  toOrderedValue :: o -> vt -> c -> Int
+
+

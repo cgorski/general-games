@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Game.Game.Poker
   where
 
@@ -6,7 +7,7 @@ import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 
--- import Data.List (tails, sortBy, nub, find)
+import Data.List (tails) --, sortBy, nub, find)
 import Data.Maybe (isJust)
 
 
@@ -56,18 +57,18 @@ isSameSuit hand =
       Nothing -> False
       Just _ -> True
 
--- hasConsecutiveRanks :: S.OrderedCard o => [o] -> Bool
--- hasConsecutiveRanks hand =
---   let handlst = map (\x -> Just x) $ sortHighToLow hand
---       ff Nothing _ = Nothing
---       ff (Just c0) (Just c1) =
---         case (fromEnum $ S.toRank c0)-(fromEnum $ S.toRank c1) of
---           1 -> Just c1
---           _ -> Nothing
---   in
---     case foldl1 ff handlst of
---       Nothing -> False
---       _ -> True
+hasConsecutiveRanks :: Order -> [PlayingCard] -> Bool
+hasConsecutiveRanks order hand =
+  let handlst = map (\x -> Just x) $ sortCardsBy order hand
+      ff Nothing _ = Nothing
+      ff (Just c0) (Just c1) =
+        case (toOrderedValue order RankValueType c0)-(toOrderedValue order RankValueType c1) of
+          1 -> Just c1
+          _ -> Nothing
+  in
+    case foldl1 ff handlst of
+      Nothing -> False
+      _ -> True
 
 -- nOfRank :: S.Hand -> [(S.Rank, Int)]
 -- nOfRank hand =
@@ -97,20 +98,18 @@ isSameSuit hand =
 --   | isJust $ mkFourOfAKind hand = True
 --   | otherwise = False
                 
--- mkStraightFlush :: S.Hand -> Maybe PokerHand
--- mkStraightFlush hand
---   | (isMinHandSize hand)
---     && (isSameSuit hand)
---     && ((hasConsecutiveRanks (AH.fromStandardCardLst $ DS.toList hand))
---          || (hasConsecutiveRanks (AL.fromStandardCardLst $ DS.toList hand)))
---     && (not $ isRoyalFlush hand) =
---       Just (StraightFlush hand)
---   | otherwise = Nothing
+mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
+mkStraightFlush hand
+  | (isMinHandSize hand) && (isSameSuit hand)
+    && ((hasConsecutiveRanks AceHighRankOrder hand)
+         || (hasConsecutiveRanks AceLowRankOrder hand))
+    && (not $ isRoyalFlush hand) = Just (PokerHand StraightFlush (sortCardsBy AceHighRankOrder hand))
+  | otherwise = Nothing
 
--- isStraightFlush :: S.Hand -> Bool
--- isStraightFlush hand
---   | isJust $ mkStraightFlush hand = True
---   | otherwise = False
+isStraightFlush :: [PlayingCard] -> Bool
+isStraightFlush hand
+  | isJust $ mkStraightFlush hand = True
+  | otherwise = False
 
 mkRoyalFlush :: [PlayingCard] -> Maybe PokerHand
 mkRoyalFlush hand
@@ -141,21 +140,21 @@ isMinHandSize hand
    | (length hand) < 5 = False
    | otherwise = True
 
--- choose :: Ord r => Int -> [r] -> [[r]]
--- choose 0 lst = [[]]
--- choose n lst = do
---   (x:xs) <- tails lst
---   rest <- choose (n-1) xs
---   return $ x : rest
+choose :: Ord r => Int -> [r] -> [[r]]
+choose 0 lst = [[]]
+choose n lst = do
+  (x:xs) <- tails lst
+  rest <- choose (n-1) xs
+  return $ x : rest
 
--- allPossibleHands :: [S.Hand]
--- allPossibleHands = map DS.fromList $ choose 5 S.cardLst
+allPossibleHands :: [[PlayingCard]]
+allPossibleHands = choose 5 fullDeck
 
--- allRoyalFlush :: [S.Hand]
--- allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
+allRoyalFlush :: [[PlayingCard]]
+allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 
--- allStraightFlush :: [S.Hand]
--- allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
+allStraightFlush :: [[PlayingCard]]
+allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
 
 -- allFourOfAKind :: [S.Hand]
 -- allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
