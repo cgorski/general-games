@@ -1,6 +1,6 @@
 import Test.HUnit
 import Game.Game.Poker
-
+import Game.Implement.Card
 import Game.Implement.Card.Standard
 
 
@@ -45,10 +45,45 @@ royalFlushNot =
    PlayingCard Jack Hearts,
    PlayingCard Ten Hearts]
 
+drawDeck :: [PlayingCard]
+drawDeck =
+  [PlayingCard Five Diamonds,
+   PlayingCard Seven Clubs,
+   PlayingCard Two Spades,
+   PlayingCard King Spades,
+   PlayingCard King Hearts,
+   PlayingCard Ace Diamonds,
+   PlayingCard Seven Diamonds,
+   PlayingCard Three Clubs,
+   PlayingCard Four Clubs]
+
+
+drawDeckSizes :: [Int]
+drawDeckSizes = [1,4,2]
+
+drawDeckExpectedOutput :: Maybe ([[PlayingCard]],[PlayingCard])
+drawDeckExpectedOutput = Just
+  ([[PlayingCard Five Diamonds],
+   [PlayingCard Seven Clubs,
+   PlayingCard Two Spades,
+   PlayingCard King Spades,
+   PlayingCard King Hearts],
+   [PlayingCard Ace Diamonds,
+   PlayingCard Seven Diamonds]],
+   [PlayingCard Three Clubs,
+   PlayingCard Four Clubs])
+
+  
+
+testCardDraw :: Test
+testCardDraw = TestCase (assertEqual "testCardDraw test" drawDeckExpectedOutput (draw drawDeckSizes drawDeck))
+
 testIsRoyalFlush :: Test
 testIsRoyalFlush = TestCase (assertEqual "Is [AH, QH, KH, JH, TH] a Royal Flush" True (isRoyalFlush royalFlush))
 testIsRoyalFlushNot :: Test
 testIsRoyalFlushNot = TestCase (assertEqual "Is [AH, QH, 8H, JH, TH] a Royal Flush" False (isRoyalFlush royalFlushNot))
+
+
 
 testPossibleHands :: Test
 testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
@@ -76,6 +111,9 @@ testPossibleHighCard = TestCase (assertEqual "Total number of high cards" allHig
 
 tests :: Test
 tests = TestList [
+  -- Card class functions
+  TestLabel "Test for Card.draw" testCardDraw,
+  
   -- Test boolean hand checks
   TestLabel "Test for testIsRoyalFlush" testIsRoyalFlush,
   TestLabel "Test for testIsRoyalFlushNot" testIsRoyalFlushNot,
@@ -97,8 +135,9 @@ tests = TestList [
 main :: IO ()
 main =
   do
-    results <- runTestTT tests
-    putStrLn $ show results
+    c <- runTestTT tests
+    putStrLn $ show c
+
 
 
     
