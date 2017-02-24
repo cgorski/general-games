@@ -1,4 +1,4 @@
-import Test.HUnit
+import Test.Hspec
 import Game.Game.Poker
 import Game.Implement.Card
 import Game.Implement.Card.Standard
@@ -61,6 +61,13 @@ drawDeck =
 drawDeckSizes :: [Int]
 drawDeckSizes = [1,4,2]
 
+drawDeckSizesFail :: [Int]
+drawDeckSizesFail = [5,9]
+
+drawDeckSizesFailNeg :: [Int]
+drawDeckSizesFailNeg = [-3,4]
+
+
 drawDeckExpectedOutput :: Maybe ([[PlayingCard]],[PlayingCard])
 drawDeckExpectedOutput = Just
   ([[PlayingCard Five Diamonds],
@@ -73,71 +80,42 @@ drawDeckExpectedOutput = Just
    [PlayingCard Three Clubs,
    PlayingCard Four Clubs])
 
-  
-
-testCardDraw :: Test
-testCardDraw = TestCase (assertEqual "testCardDraw test" drawDeckExpectedOutput (draw drawDeckSizes drawDeck))
-
-testIsRoyalFlush :: Test
-testIsRoyalFlush = TestCase (assertEqual "Is [AH, QH, KH, JH, TH] a Royal Flush" True (isRoyalFlush royalFlush))
-testIsRoyalFlushNot :: Test
-testIsRoyalFlushNot = TestCase (assertEqual "Is [AH, QH, 8H, JH, TH] a Royal Flush" False (isRoyalFlush royalFlushNot))
-
-
-
-testPossibleHands :: Test
-testPossibleHands = TestCase (assertEqual "Total number of poker hands" allHandsCountExpected allHandsCount)
-testPossibleRoyalFlush :: Test
-testPossibleRoyalFlush = TestCase (assertEqual "Total number of royal flushes" allRoyalFlushCountExpected (length allRoyalFlush))
-testPossibleStraightFlush :: Test
-testPossibleStraightFlush = TestCase (assertEqual "Total number of straight flushes" allStraightFlushCountExpected (length allStraightFlush))
-testPossibleFourOfAKind :: Test
-testPossibleFourOfAKind = TestCase (assertEqual "Total number of four-of-a-kinds" allFourOfAKindCountExpected (length allFourOfAKind))
-testPossibleFullHouse :: Test
-testPossibleFullHouse = TestCase (assertEqual "Total number of full houses" allFullHouseCountExpected (length allFullHouse))
-testPossibleFlush :: Test
-testPossibleFlush = TestCase (assertEqual "Total number of flushes" allFlushCountExpected (length allFlush))
-testPossibleStraight :: Test
-testPossibleStraight = TestCase (assertEqual "Total number of straights" allStraightCountExpected (length allStraight))
-testPossibleThreeOfAKind :: Test
-testPossibleThreeOfAKind = TestCase (assertEqual "Total number of three-of-a-kinds" allThreeOfAKindCountExpected (length allThreeOfAKind))
-testPossibleTwoPair :: Test
-testPossibleTwoPair = TestCase (assertEqual "Total number of two-pairs" allTwoPairCountExpected (length allTwoPair))
-testPossiblePair :: Test
-testPossiblePair = TestCase (assertEqual "Total number of pairs" allPairCountExpected (length allPair))
-testPossibleHighCard :: Test
-testPossibleHighCard = TestCase (assertEqual "Total number of high cards" allHighCardCountExpected (length allHighCard))
-
-
-tests :: Test
-tests = TestList [
-  -- Card class functions
-  TestLabel "Test for Card.draw" testCardDraw,
-  
-  -- Test boolean hand checks
-  TestLabel "Test for testIsRoyalFlush" testIsRoyalFlush,
-  TestLabel "Test for testIsRoyalFlushNot" testIsRoyalFlushNot,
-  
-  -- Test that hand calculation counts match correct values
-  TestLabel "Test for testPossibleHands" testPossibleHands,
-  TestLabel "Test for testPossibleRoyalFlush" testPossibleRoyalFlush,
-  TestLabel "Test for testPossibleStraightFlush" testPossibleStraightFlush,
-  TestLabel "Test for testPossibleFourOfAKind" testPossibleFourOfAKind,
-  TestLabel "Test for testPossibleFullHouse" testPossibleFullHouse,
-  TestLabel "Test for testPossibleFlush" testPossibleFlush,
-  TestLabel "Test for testPossibleStraight" testPossibleStraight,
-  TestLabel "Test for testPossibleThreeOfAKind" testPossibleThreeOfAKind,
-  TestLabel "Test for testTwoPair" testPossibleTwoPair,
-  TestLabel "Test for testPair" testPossiblePair,
-  TestLabel "Test for testHighCard" testPossibleHighCard
-  ]
-
 main :: IO ()
-main =
-  do
-    c <- runTestTT tests
-    putStrLn $ show c
+main = hspec $ do
+  describe "Game.Implement.Card instance" $ do
+    it "returns drawn hands from a deck, plus the remaining deck" $ do
+      (draw drawDeckSizes drawDeck) `shouldBe` drawDeckExpectedOutput
+    it "returns Nothing when trying to return more cards than in deck" $ do
+      (draw drawDeckSizesFail drawDeck) `shouldBe` Nothing
+    it "returns Nothing when trying to return negative cards" $ do
+      (draw drawDeckSizesFailNeg drawDeck) `shouldBe` Nothing
 
+  describe "Game.Implement.Card.Standard.Poker.isRoyalFlush" $ do
+    it "confirms that [AH, QH, KH, JH, TH] is a Royal Flush" $ do
+      (isRoyalFlush royalFlush) `shouldBe` True
+    it "confirms that [AH, QH, 8H, JH, TH] is not a Royal Flush" $ do
+      (isRoyalFlush royalFlushNot) `shouldBe` False
+  describe "Game.Implement.Card.Standard.Poker allPossibleHands / isHand functions" $ do
+    it "confirms the total number of poker hands" $ do
+      allHandsCount `shouldBe` allHandsCountExpected
+    it "confirms the total number of royal flushes" $ do
+      (length allRoyalFlush) `shouldBe` allRoyalFlushCountExpected
+    it "confirms the total number of straight flushes" $ do
+      (length allStraightFlush) `shouldBe` allStraightFlushCountExpected
+    it "confirms the total number of four-of-a-kinds" $ do
+      (length allFourOfAKind) `shouldBe` allFourOfAKindCountExpected
+    it "confirms the total number of full houses" $ do
+      (length allFullHouse) `shouldBe` allFullHouseCountExpected
+    it "confirms the total number of flushes" $ do
+      (length allFlush) `shouldBe` allFlushCountExpected
+    it "confirms the total number of straights" $ do
+      (length allStraight) `shouldBe` allStraightCountExpected
+    it "confirms the total number of three-of-a-kinds" $ do
+      (length allThreeOfAKind) `shouldBe` allThreeOfAKindCountExpected
+    it "confirms the total number of two-pairs" $ do
+      (length allTwoPair) `shouldBe` allTwoPairCountExpected
+    it "confirms the total number of pairs" $ do
+      (length allPair) `shouldBe` allPairCountExpected
+    it "confirms the total number of high card hands" $ do
+      (length allHighCard) `shouldBe` allHighCardCountExpected
 
-
-    

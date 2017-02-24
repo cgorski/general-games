@@ -12,8 +12,11 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   fullDeck = [minBound .. maxBound]
   dedupe l = nub l
   draw handSizeLst deck 
-    | let total = (foldl1' (+) handSizeLst) in
-        (total > (length deck)) || (total < 1) = Nothing
+    | let
+        total = (foldl1' (+) handSizeLst)
+        anyNeg = (length (filter (\n -> n < 0) handSizeLst)) > 0
+      in
+        (total > (length deck)) || (total < 1) || anyNeg = Nothing
     | otherwise = let
         draw2 [] (houtput, doutput) = ((reverse houtput), doutput)
         draw2 (nToTake:hst) (handOutput, deckOutput) = let
