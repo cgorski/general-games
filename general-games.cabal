@@ -8,7 +8,7 @@ license-file:        LICENSE
 author:              Christopher A. Gorski
 maintainer:          cgorski@cgorski.org
 copyright:           2017 Christopher A. Gorski
-category:            Games, Poker
+category:            Game, Poker
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
