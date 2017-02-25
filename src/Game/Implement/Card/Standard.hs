@@ -47,10 +47,10 @@ data Value = RankValue | SuitValue deriving (Eq)
 
 instance Enum PlayingCard where
   fromEnum (PlayingCard r s) =
-      (fromEnum r)+((fromEnum s)*nRanks)
+      ((fromEnum s)*nRanks)+(fromEnum r)
   toEnum n =
     let r = n `mod` nRanks
-        s = n `mod` 4
+        s = n `div` nRanks
     in
       (PlayingCard (toEnum r) (toEnum s))
 
