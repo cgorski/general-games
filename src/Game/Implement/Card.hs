@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Game.Implement.Card
 -- Copyright   : (c) 2017 Christopher A. Gorski
@@ -34,9 +35,18 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   dedupe :: [c] -> [c]
   draw :: [Int] -> [c] -> Maybe ([[c]],[c])
   shuffle :: MonadRandom m => [c] -> m [c]
+  randomCard :: MonadRandom m => m c
   fullDeck = [minBound .. maxBound]
   dedupe l = nub l
   shuffle deck = shuffleM deck
+  randomCard =
+    let
+      minB = minBound :: (Bounded c, Card c) => c
+      maxB = maxBound :: (Bounded c, Card c) => c in
+      do
+        randomd <- getRandomR(fromEnum minB, fromEnum maxB)
+        return $ toEnum randomd
+      
   draw handSizeLst deck 
     | let
         total = (foldl1' (+) handSizeLst)

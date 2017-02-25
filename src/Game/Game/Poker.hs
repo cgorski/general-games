@@ -1,9 +1,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
-
+-- |
+-- Module      : Game.Implement.Card
+-- Copyright   : (c) 2017 Christopher A. Gorski
+-- License     : MIT
+-- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
+--
+-- The Game.Game.Poker module provides operations for five card poker.
 module Game.Game.Poker
+  (AceRank(AceHigh, AceLow)
+
+  )
+
+   
   where
 
+import Control.Monad.Random
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
@@ -11,12 +23,20 @@ import Game.Implement.Card.Standard.Poker
 import Data.List (tails,nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
 
+-- |
+-- Indicates if a poker hand uses the Ace as a high card or a low card.
+--
+-- >>>
+data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
 
-type RankHand = [PlayingCard] 
-type KickerHand = [PlayingCard]
-data RankKicker = RankHand KickerHand deriving(Eq,Show)
-
-data AceRank = AceHigh | AceLow deriving (Eq, Show)
+randomAceRank :: MonadRandom m => m AceRank
+randomAceRank =
+  let
+    minB = minBound :: AceRank
+    maxB = maxBound :: AceRank in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum minB, fromEnum maxB);
+      return $ toEnum randomn
 
 orderOfAceRank :: AceRank -> Order
 orderOfAceRank AceHigh = AceHighRankOrder
@@ -35,23 +55,43 @@ data PokerHandType =
   | RoyalFlush 
   deriving(Eq,Show)
 
-data PokerHandSplit = PokerHandType RankKicker deriving(Eq,Show)
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
-mkBestHand :: [PlayingCard] -> Maybe PokerHand
-mkBestHand hand =
+randomSequence5 :: RandomGen g => Rank -> Rand g [PlayingCard]
+randomSequence5 startRank =
+  let
+    ranklst :: [Rank] = startRank:[(toEnum 2)..(toEnum 5)]
+    mergelst r s = return(PlayingCard r s)
+  in
+    do
+      suitlst :: [Suit] <- replicateM 5 randomSuit
+      cardset <- zipWithM mergelst ranklst suitlst
+      return cardset
+
+-- randomStraight :: RandomGen g => Rand g PokerHand
+-- randomStraight =
+--   do
+--     aceN <- randomAceRank
+--     startRank <-
+--       if aceN == AceLow
+--       then randomRankR Ace Nine
+--       else randomRankR Two Ten
+--     return $ randomSequence5 startRank
+    
+mkHand :: [PlayingCard] -> Maybe PokerHand
+mkHand hand =
   let checks =
-        [mkHighCard hand
-        ,mkPair hand
-        ,mkTwoPair hand
-        ,mkThreeOfAKind hand
-        ,mkStraight hand
-        ,mkFlush hand
-        ,mkFullHouse hand
-        ,mkFourOfAKind hand
-        ,mkStraightFlush hand
-        ,mkRoyalFlush hand]
-      cat = catMaybes checks
+        [mkHighCard
+        ,mkPair
+        ,mkTwoPair
+        ,mkThreeOfAKind
+        ,mkStraight
+        ,mkFlush
+        ,mkFullHouse
+        ,mkFourOfAKind
+        ,mkStraightFlush
+        ,mkRoyalFlush]
+      cat = catMaybes $ map (\f -> f hand) checks
   in 
     if length cat == 0
     then Nothing

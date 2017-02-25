@@ -1,12 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Game.Implement.Card.Standard
   where
 
+import Control.Monad.Random
 import Game.Implement.Card
 
+
 data Rank =
-  Ace |
   Two |
   Three |
   Four |
@@ -18,8 +20,27 @@ data Rank =
   Ten |
   Jack |
   Queen |
-  King
+  King |
+  Ace
   deriving (Show, Enum, Eq, Ord, Bounded)
+
+randomRank :: RandomGen m => Rand m Rank
+randomRank =
+  let
+    min = minBound :: Rank
+    max = maxBound :: Rank in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      return $ toEnum randomn
+
+randomRankR :: RandomGen m => Rank -> Rank -> Rand m Rank
+randomRankR l u =
+  let
+    min = l :: Rank
+    max = u :: Rank in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+      return $ toEnum randomn
 
 ranks :: [Rank]
 ranks = [minBound .. maxBound]
@@ -33,6 +54,26 @@ data Suit =
   Hearts |
   Spades
   deriving (Show, Enum, Eq, Ord, Bounded)
+
+randomSuit :: RandomGen m => Rand m Suit
+randomSuit =
+  let
+    min = minBound :: Suit
+    max = maxBound :: Suit in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      return $ toEnum randomn
+
+randomSuitR :: RandomGen m => Suit -> Suit -> Rand m Suit
+randomSuitR l u =
+  let
+    min = l :: Suit
+    max = u :: Suit in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+      return $ toEnum randomn
+
+
 
 suits :: [Suit]
 suits = [minBound .. maxBound]
@@ -71,6 +112,9 @@ instance ValuedCard PlayingCard Suit where
 
 toSuit :: PlayingCard -> Suit
 toSuit (PlayingCard _ s) = s
+
+
+
 
 
 
