@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+
 module Game.Game.Poker
   where
 
@@ -7,35 +8,54 @@ import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 
-import Data.List (tails,nub,find) --, sortBy, nub, find)
-import Data.Maybe (isJust)
+import Data.List (tails,nub,find) 
+import Data.Maybe (isJust, fromJust, catMaybes)
 
 
 type RankHand = [PlayingCard] 
 type KickerHand = [PlayingCard]
 data RankKicker = RankHand KickerHand deriving(Eq,Show)
 
+data AceRank = AceHigh | AceLow deriving (Eq, Show)
+
+orderOfAceRank :: AceRank -> Order
+orderOfAceRank AceHigh = AceHighRankOrder
+orderOfAceRank AceLow = AceLowRankOrder
+
 data PokerHandType =
   HighCard 
   | Pair 
   | TwoPair 
   | ThreeOfAKind 
-  | Straight 
+  | Straight AceRank
   | Flush 
   | FullHouse 
   | FourOfAKind 
-  | StraightFlush 
+  | StraightFlush AceRank
   | RoyalFlush 
   deriving(Eq,Show)
 
 data PokerHandSplit = PokerHandType RankKicker deriving(Eq,Show)
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
--- mkBestHand :: S.Hand -> Maybe PokerHand
--- mkBestHand hand
---   | isPokerHandSize hand = Nothing
---   | otherwise = mkHighCard hand
-
+mkBestHand :: [PlayingCard] -> Maybe PokerHand
+mkBestHand hand =
+  let checks =
+        [mkHighCard hand
+        ,mkPair hand
+        ,mkTwoPair hand
+        ,mkThreeOfAKind hand
+        ,mkStraight hand
+        ,mkFlush hand
+        ,mkFullHouse hand
+        ,mkFourOfAKind hand
+        ,mkStraightFlush hand
+        ,mkRoyalFlush hand]
+      cat = catMaybes checks
+  in 
+    if length cat == 0
+    then Nothing
+    else Just $ cat !! 0
 
 isSameSuit :: [PlayingCard] -> Bool
 isSameSuit hand =
@@ -150,15 +170,27 @@ isThreeOfAKind hand
   | isJust $ mkThreeOfAKind hand = True
   | otherwise = False
 
+mkConsecutiveRanks :: [PlayingCard] -> Maybe ([PlayingCard], AceRank)
+mkConsecutiveRanks hand =
+  let consecHigh h = (hasConsecutiveRanks AceHighRankOrder h)
+      consecLow h = (hasConsecutiveRanks AceLowRankOrder h)
+      f h2
+        | consecHigh h2 = Just (sortCardsBy AceHighRankOrder h2, AceHigh)
+        | consecLow h2 = Just (sortCardsBy AceLowRankOrder h2, AceLow)
+        | otherwise = Nothing
+  in f hand
+        
+        
 
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
   | isPokerHandSize hand =
-      if ((hasConsecutiveRanks AceHighRankOrder hand)
-           || (hasConsecutiveRanks AceLowRankOrder hand))
-         && (not $ isRoyalFlush hand)
-         && (not $ isStraightFlush hand)
-      then Just (PokerHand Straight (sortCardsBy AceHighRankOrder hand))
+      let consecRanks  = mkConsecutiveRanks hand
+          isConsecRanks = isJust consecRanks in
+        if isConsecRanks
+        && (not $ isRoyalFlush hand)
+        && (not $ isStraightFlush hand)
+      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) hand)
       else Nothing
   | otherwise = Nothing
 
@@ -173,7 +205,7 @@ mkFlush hand
       if (isSameSuit hand)
          && (not $ isRoyalFlush hand)
          && (not $ isStraightFlush hand) 
-      then Just (PokerHand Flush (sortCardsBy AceHighRankOrder hand))
+      then Just (PokerHand Flush hand)
       else Nothing
   | otherwise = Nothing
 
@@ -212,12 +244,13 @@ isFourOfAKind hand
 mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
 mkStraightFlush hand
   | isPokerHandSize hand =
-      if (isSameSuit hand)
-         && ((hasConsecutiveRanks AceHighRankOrder hand)
-              || (hasConsecutiveRanks AceLowRankOrder hand))
-         && (not $ isRoyalFlush hand)
-      then Just (PokerHand StraightFlush hand)
-      else Nothing     
+      let consecRanks  = mkConsecutiveRanks hand
+          isConsecRanks = isJust consecRanks in
+        if isConsecRanks
+        && (isSameSuit hand)
+        && (not $ isRoyalFlush hand)
+      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) hand)
+      else Nothing
   | otherwise = Nothing
 
 isStraightFlush :: [PlayingCard] -> Bool
