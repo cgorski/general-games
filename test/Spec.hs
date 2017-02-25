@@ -4,7 +4,6 @@ import Game.Game.Poker
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 
-
 allHandsCount :: Int
 allHandsCount = length allPossibleHands
 allHandsCountExpected :: Int
@@ -119,7 +118,7 @@ main =
     randdecks <- evalRandIO $ replicateM 10000 shuffledDeck;
 
     hspec $ do
-      describe "Game.Implement.Card.draw" $ do
+      describe "Game.Implement.Card.draw (PlayingCard)" $ do
         it "returns drawn hands from a deck, plus the remaining deck" $ do
           (draw drawDeckSizes drawDeck) `shouldBe` drawDeckExpectedOutput
         it "returns Nothing when trying to return more cards than in deck" $ do
@@ -127,7 +126,13 @@ main =
         it "returns Nothing when trying to return negative cards" $ do
           (draw drawDeckSizesFailNeg drawDeck) `shouldBe` Nothing
 
-      describe "Game.Implement.Card.shuffle" $ do
+      describe "Game.Implement.Card.fullDeck (PlayingCard)" $ do
+        it "returns 52 cards" $ do
+          length (fullDeck :: [PlayingCard]) `shouldBe` 52
+        it "returns unique cards" $ do
+          isUnique (fullDeck :: [PlayingCard]) `shouldBe` True
+
+      describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
         it "returns 10000 different fullDeck shuffles using the global random generator" $ do
           (isUnique randdecks) `shouldBe` True
   
