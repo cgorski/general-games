@@ -3,14 +3,18 @@
 module Game.Implement.Card
   where
 
+import Control.Monad.Random
+import System.Random.Shuffle (shuffleM)
 import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1')
 
 class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   fullDeck :: [c]
   dedupe :: [c] -> [c]
   draw :: [Int] -> [c] -> Maybe ([[c]],[c])
+  shuffle :: MonadRandom m => [c] -> m [c]
   fullDeck = [minBound .. maxBound]
   dedupe l = nub l
+  shuffle deck = shuffleM deck
   draw handSizeLst deck 
     | let
         total = (foldl1' (+) handSizeLst)
@@ -24,8 +28,9 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
           newDeck = drop nToTake deckOutput in
             draw2 hst (newHand:handOutput, newDeck)
         in Just (draw2 handSizeLst ([],deck))
-            
 
+
+           
 class (Card c) => ValuedCard c v where
   toValue :: c -> v
   toValueLst :: [c] -> [v]
