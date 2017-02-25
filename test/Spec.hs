@@ -80,6 +80,30 @@ drawDeckExpectedOutput = Just
    [PlayingCard Three Clubs,
    PlayingCard Four Clubs])
 
+confirmDisjoint :: (Int, Bool)
+confirmDisjoint =
+  let mfunc1 hand = [mkRoyalFlush hand,
+                     mkStraightFlush hand,
+                     mkFourOfAKind hand,
+                     mkFullHouse hand,
+                     mkFlush hand,
+                     mkStraight hand,
+                     mkThreeOfAKind hand,
+                     mkTwoPair hand,
+                     mkPair hand,
+                     mkHighCard hand]
+      maybem (Just _) = 1
+      maybem Nothing = 0
+      countJust hand = sum $ map maybem $ mfunc1 hand
+      allSums = map countJust allPossibleHands
+      collect (x:xs)  (outsum, False) = (outsum, False)
+      collect (x:xs) (outsum, outdisjoint) =
+        collect xs (x+outsum, if x==0 || x==1 then True else False)
+      collect [] output = output 
+  in
+    collect allSums (0, True)
+
+
 main :: IO ()
 main = hspec $ do
   describe "Game.Implement.Card instance" $ do
@@ -95,7 +119,9 @@ main = hspec $ do
       (isRoyalFlush royalFlush) `shouldBe` True
     it "confirms that [AH, QH, 8H, JH, TH] is not a Royal Flush" $ do
       (isRoyalFlush royalFlushNot) `shouldBe` False
-  describe "Game.Implement.Card.Standard.Poker allPossibleHands / isHand functions" $ do
+  describe "Game.Implement.Card.Standard.Poker allPossibleHands / mkHand / isHand functions" $ do
+    it "confirms that sets of each hand are disjoint and that total count correct" $ do
+      confirmDisjoint `shouldBe` (allHandsCountExpected, True)
     it "confirms the total number of poker hands" $ do
       allHandsCount `shouldBe` allHandsCountExpected
     it "confirms the total number of royal flushes" $ do
