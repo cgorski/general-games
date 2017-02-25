@@ -8,8 +8,8 @@ import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 
-import Data.List (tails,nub,find) --, sortBy, nub, find)
-import Data.Maybe (isJust, fromJust)
+import Data.List (tails,nub,find) 
+import Data.Maybe (isJust, fromJust, catMaybes)
 
 
 type RankHand = [PlayingCard] 
@@ -38,11 +38,24 @@ data PokerHandType =
 data PokerHandSplit = PokerHandType RankKicker deriving(Eq,Show)
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
--- mkBestHand :: S.Hand -> Maybe PokerHand
--- mkBestHand hand
---   | isPokerHandSize hand = Nothing
---   | otherwise = mkHighCard hand
-
+mkBestHand :: [PlayingCard] -> Maybe PokerHand
+mkBestHand hand =
+  let checks =
+        [mkHighCard hand
+        ,mkPair hand
+        ,mkTwoPair hand
+        ,mkThreeOfAKind hand
+        ,mkStraight hand
+        ,mkFlush hand
+        ,mkFullHouse hand
+        ,mkFourOfAKind hand
+        ,mkStraightFlush hand
+        ,mkRoyalFlush hand]
+      cat = catMaybes checks
+  in 
+    if length cat == 0
+    then Nothing
+    else Just $ cat !! 0
 
 isSameSuit :: [PlayingCard] -> Bool
 isSameSuit hand =
@@ -177,7 +190,7 @@ mkStraight hand
         if isConsecRanks
         && (not $ isRoyalFlush hand)
         && (not $ isStraightFlush hand)
-      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) (fst $ fromJust consecRanks))
+      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) hand)
       else Nothing
   | otherwise = Nothing
 
@@ -192,7 +205,7 @@ mkFlush hand
       if (isSameSuit hand)
          && (not $ isRoyalFlush hand)
          && (not $ isStraightFlush hand) 
-      then Just (PokerHand Flush (sortCardsBy AceHighRankOrder hand))
+      then Just (PokerHand Flush hand)
       else Nothing
   | otherwise = Nothing
 
@@ -236,7 +249,7 @@ mkStraightFlush hand
         if isConsecRanks
         && (isSameSuit hand)
         && (not $ isRoyalFlush hand)
-      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) (fst $ fromJust consecRanks))
+      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) hand)
       else Nothing
   | otherwise = Nothing
 
