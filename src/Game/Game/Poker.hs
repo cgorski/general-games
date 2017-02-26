@@ -8,7 +8,34 @@
 --
 -- The Game.Game.Poker module provides operations for five card poker.
 module Game.Game.Poker
-  (AceRank(AceHigh, AceLow)
+  (
+    AceRank (AceHigh, AceLow)
+  , allPossibleHands
+
+  , allRoyalFlush
+  , allStraightFlush
+  , allFourOfAKind
+  , allFullHouse
+  , allFlush
+  , allStraight
+  , allThreeOfAKind
+  , allTwoPair
+  , allPair
+  , allHighCard
+  
+  , isRoyalFlush
+  
+  , mkRoyalFlush
+  , mkStraightFlush
+  , mkFourOfAKind
+  , mkFullHouse
+  , mkFlush
+  , mkStraight
+  , mkThreeOfAKind
+  , mkTwoPair
+  , mkPair
+  , mkHighCard
+  , randomStraight
 
   )
 
@@ -23,11 +50,6 @@ import Game.Implement.Card.Standard.Poker
 import Data.List (tails,nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
 
--- |
--- Indicates if a poker hand uses the Ace as a high card or a low card.
---
--- >>>
-data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
 
 randomAceRank :: MonadRandom m => m AceRank
 randomAceRank =
@@ -37,10 +59,17 @@ randomAceRank =
     do
       (randomn :: Int) <- getRandomR(fromEnum minB, fromEnum maxB);
       return $ toEnum randomn
-
 orderOfAceRank :: AceRank -> Order
 orderOfAceRank AceHigh = AceHighRankOrder
 orderOfAceRank AceLow = AceLowRankOrder
+
+-- |
+-- Indicates if a poker hand uses the Ace as a high card or a low card.
+--
+-- >>>
+data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
+
+
 
 data PokerHandType =
   HighCard 
@@ -57,26 +86,20 @@ data PokerHandType =
 
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
-randomSequence5 :: RandomGen g => Rank -> Rand g [PlayingCard]
-randomSequence5 startRank =
+randomStraight :: RandomGen g => Rand g PokerHand
+randomStraight =
   let
-    ranklst :: [Rank] = startRank:[(toEnum 2)..(toEnum 5)]
+    mkRanklst :: Int -> [Rank]
+    mkRanklst n = map (\m -> toEnum ((m+n) `mod` 13) ) [0..4] 
     mergelst r s = return(PlayingCard r s)
   in
     do
+      startRank :: Int <- getRandomR(0,9)
+      aceRank <- return (if startRank == 0 then AceLow else AceHigh)
+      ranklst <- return (mkRanklst startRank)
       suitlst :: [Suit] <- replicateM 5 randomSuit
       cardset <- zipWithM mergelst ranklst suitlst
-      return cardset
-
--- randomStraight :: RandomGen g => Rand g PokerHand
--- randomStraight =
---   do
---     aceN <- randomAceRank
---     startRank <-
---       if aceN == AceLow
---       then randomRankR Ace Nine
---       else randomRankR Two Ten
---     return $ randomSequence5 startRank
+      return $ PokerHand (Straight aceRank) cardset
     
 mkHand :: [PlayingCard] -> Maybe PokerHand
 mkHand hand =
