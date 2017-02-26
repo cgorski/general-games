@@ -117,6 +117,16 @@ main =
   do
     randdecks <- evalRandIO $ replicateM 10000 shuffledDeck;
 
+    randStraights <-
+      let
+        r = do
+          h <- randomStraight
+          return (h, isStraight $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+      
+    randStraightFlushes <- evalRandIO $ replicateM 100000 randomStraightFlush
+    
+
     hspec $ do
       describe "Game.Implement.Card.draw (PlayingCard)" $ do
         it "returns drawn hands from a deck, plus the remaining deck" $ do
@@ -132,15 +142,21 @@ main =
         it "returns unique cards" $ do
           isUnique (fullDeck :: [PlayingCard]) `shouldBe` True
 
-      describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
-        it "returns 10000 different fullDeck shuffles using the global random generator" $ do
-          (isUnique randdecks) `shouldBe` True
   
       describe "Game.Implement.Card.Standard.Poker.isRoyalFlush" $ do
         it "confirms that [AH, QH, KH, JH, TH] is a Royal Flush" $ do
           (isRoyalFlush royalFlush) `shouldBe` True
         it "confirms that [AH, QH, 8H, JH, TH] is not a Royal Flush" $ do
           (isRoyalFlush royalFlushNot) `shouldBe` False
+
+      describe "Game.Game.Poker.randomStraight" $ do
+        it "returns 100000 random Straights" $ do 
+          randStraights `shouldBe` (map (\(h,_) -> (h,True)) randStraights) 
+
+      describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
+        it "returns 10000 different fullDeck shuffles using the global random generator" $ do
+          (isUnique randdecks) `shouldBe` True
+
       describe "Game.Implement.Card.Standard.Poker allPossibleHands / mkHand / isHand functions" $ do
         it "confirms that sets of each hand are disjoint and that total count correct" $ do
           confirmDisjoint `shouldBe` (allHandsCountExpected, True)

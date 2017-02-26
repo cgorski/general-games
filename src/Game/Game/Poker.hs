@@ -10,6 +10,10 @@
 module Game.Game.Poker
   (
     AceRank (AceHigh, AceLow)
+  , PokerHand
+  
+  , cardsOfPokerHand
+  
   , allPossibleHands
 
   , allRoyalFlush
@@ -24,6 +28,15 @@ module Game.Game.Poker
   , allHighCard
   
   , isRoyalFlush
+  , isStraightFlush
+  , isFourOfAKind
+  , isFullHouse
+  , isFlush
+  , isStraight
+  , isThreeOfAKind
+  , isTwoPair
+  , isPair
+  , isHighCard
   
   , mkRoyalFlush
   , mkStraightFlush
@@ -35,14 +48,17 @@ module Game.Game.Poker
   , mkTwoPair
   , mkPair
   , mkHighCard
+  
   , randomStraight
-
+  , randomStraightFlush
+  , mkConsecutiveRanks
   )
 
    
   where
 
 import Control.Monad.Random
+import Control.Monad.Loops
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
@@ -69,7 +85,7 @@ orderOfAceRank AceLow = AceLowRankOrder
 -- >>>
 data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
 
-
+cardsOfPokerHand (PokerHand _ h) = h
 
 data PokerHandType =
   HighCard 
@@ -92,15 +108,38 @@ randomStraight =
     mkRanklst :: Int -> [Rank]
     mkRanklst n = map (\m -> toEnum ((m+n) `mod` 13) ) [0..4] 
     mergelst r s = return(PlayingCard r s)
+    l = do
+      startRank :: Int <- getRandomR(0,9)
+
+      ranklst <- return (mkRanklst startRank)
+      suitlst :: [Suit] <- replicateM 5 randomSuit
+      cardset <- zipWithM mergelst ranklst suitlst
+      return cardset
+  in
+    do
+      hand <- iterateUntil (\h -> (not $ isStraightFlush h) && (not $ isRoyalFlush h)) l
+      aceRank <- return (if (toRank $  hand !! 0) == Ace then AceLow else AceHigh)
+      return $ PokerHand (Straight aceRank) hand
+
+
+
+randomStraightFlush :: RandomGen g => Rand g PokerHand
+randomStraightFlush =
+  let
+    mkRanklst :: Int -> [Rank]
+    mkRanklst n = map (\m -> toEnum ((m+n) `mod` 13) ) [0..4] 
+    mergelst r s = return(PlayingCard r s)
   in
     do
       startRank :: Int <- getRandomR(0,9)
       aceRank <- return (if startRank == 0 then AceLow else AceHigh)
       ranklst <- return (mkRanklst startRank)
-      suitlst :: [Suit] <- replicateM 5 randomSuit
+      randSuit <- randomSuit
+      suitlst :: [Suit] <- return (replicate 5 randSuit)
       cardset <- zipWithM mergelst ranklst suitlst
       return $ PokerHand (Straight aceRank) cardset
-    
+
+      
 mkHand :: [PlayingCard] -> Maybe PokerHand
 mkHand hand =
   let checks =
