@@ -9,6 +9,7 @@ import Game.Implement.Card
 
 
 data Rank =
+  Ace |
   Two |
   Three |
   Four |
@@ -20,8 +21,8 @@ data Rank =
   Ten |
   Jack |
   Queen |
-  King |
-  Ace
+  King
+
   deriving (Show, Enum, Eq, Ord, Bounded)
 
 randomRank :: RandomGen m => Rand m Rank
