@@ -10,10 +10,12 @@
 -- The Game.Game.Poker module provides operations for five card poker.
 module Game.Game.Poker
   (
-    AceRank (AceHigh, AceLow)
+    AceRank (..)
   , PokerHand
+  , PokerHandType(..)
   
   , cardsOfPokerHand
+  , typeOfPokerHand
   
   , allPossibleHands
 
@@ -51,6 +53,8 @@ module Game.Game.Poker
   , mkPair
   , mkHighCard
 
+  , randomPair
+  , randomTwoPair
   , randomThreeOfAKind
   , randomStraight
   , randomFlush
@@ -95,6 +99,7 @@ orderOfAceRank AceLow = AceLowRankOrder
 data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
 
 cardsOfPokerHand (PokerHand _ h) = h
+typeOfPokerHand (PokerHand t _) = t
 
 data PokerHandType =
   HighCard 
@@ -110,6 +115,43 @@ data PokerHandType =
   deriving(Eq,Show)
 
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
+
+randomPair :: RandomGen g => Rand g PokerHand
+randomPair =
+  do
+    numLstR <- uniqueNumList 4 0 12
+    rank1pair <- return $ replicate 2 $ toEnum $ (fromJust numLstR) !! 0
+    rank2 <- return $ toEnum $ (fromJust numLstR) !! 1
+    rank3 <- return $ toEnum $ (fromJust numLstR) !! 2
+    rank4 <- return $ toEnum $ (fromJust numLstR) !! 3
+    rankLst <- return $ rank4:rank3:rank2:rank1pair
+    numLstS1 <- uniqueNumList 2 0 3
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suit2 <- randomSuit
+    suit3 <- randomSuit
+    suit4 <- randomSuit
+    suitLst <- return $ suit4:suit3:suit2:suitLst1
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand Pair shuffleset
+
+randomTwoPair :: RandomGen g => Rand g PokerHand
+randomTwoPair =
+  do
+    numLstR <- uniqueNumList 3 0 12
+    rank1 <- return $ replicate 2 $ toEnum $ (fromJust numLstR) !! 0
+    rank2 <- return $ replicate 2 $ toEnum $ (fromJust numLstR) !! 1
+    rank3 <- return $ toEnum $ (fromJust numLstR) !! 2
+    rankLst :: [Rank] <- return $ rank3:(rank1 ++ rank2)
+    numLstS1 <- uniqueNumList 2 0 3
+    numLstS2 <- uniqueNumList 2 0 3
+    numS3 <- randomSuit
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suitLst2 <- return $ map (\r -> toEnum r) $ fromJust numLstS2
+    suitLst <- return $ numS3:(suitLst1 ++ suitLst2)
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand TwoPair shuffleset
 
 
 randomThreeOfAKind :: RandomGen g => Rand g PokerHand
