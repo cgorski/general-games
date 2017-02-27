@@ -123,8 +123,24 @@ main =
           h <- randomStraight
           return (h, isStraight $ cardsOfPokerHand h)
       in evalRandIO $ replicateM 100000 r
-      
-    randStraightFlushes <- evalRandIO $ replicateM 100000 randomStraightFlush
+
+    randFourOfAKinds <-
+      let
+        r = do
+          h <- randomFourOfAKind
+          return (h, isFourOfAKind $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+
+    randStraightFlushes <-
+      let
+        r = do
+          h <- randomStraightFlush
+          return (h, isStraightFlush $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+
+
     
 
     hspec $ do
@@ -153,33 +169,40 @@ main =
         it "returns 100000 random Straights" $ do 
           randStraights `shouldBe` (map (\(h,_) -> (h,True)) randStraights) 
 
-      describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
-        it "returns 10000 different fullDeck shuffles using the global random generator" $ do
-          (isUnique randdecks) `shouldBe` True
+        it "returns 100000 random Straight Flushes" $ do 
+          randStraightFlushes `shouldBe` (map (\(h,_) -> (h,True)) randStraightFlushes) 
 
-      describe "Game.Implement.Card.Standard.Poker allPossibleHands / mkHand / isHand functions" $ do
-        it "confirms that sets of each hand are disjoint and that total count correct" $ do
-          confirmDisjoint `shouldBe` (allHandsCountExpected, True)
-        it "confirms the total number of poker hands" $ do
-          allHandsCount `shouldBe` allHandsCountExpected
-        it "confirms the total number of royal flushes" $ do
-          (length allRoyalFlush) `shouldBe` allRoyalFlushCountExpected
-        it "confirms the total number of straight flushes" $ do
-          (length allStraightFlush) `shouldBe` allStraightFlushCountExpected
-        it "confirms the total number of four-of-a-kinds" $ do
-          (length allFourOfAKind) `shouldBe` allFourOfAKindCountExpected
-        it "confirms the total number of full houses" $ do
-          (length allFullHouse) `shouldBe` allFullHouseCountExpected
-        it "confirms the total number of flushes" $ do
-          (length allFlush) `shouldBe` allFlushCountExpected
-        it "confirms the total number of straights" $ do
-          (length allStraight) `shouldBe` allStraightCountExpected
-        it "confirms the total number of three-of-a-kinds" $ do
-          (length allThreeOfAKind) `shouldBe` allThreeOfAKindCountExpected
-        it "confirms the total number of two-pairs" $ do
-          (length allTwoPair) `shouldBe` allTwoPairCountExpected
-        it "confirms the total number of pairs" $ do
-          (length allPair) `shouldBe` allPairCountExpected
-        it "confirms the total number of high card hands" $ do
-          (length allHighCard) `shouldBe` allHighCardCountExpected
+        it "returns 100000 random Four-of-a-Kinds" $ do 
+          randFourOfAKinds `shouldBe` (map (\(h,_) -> (h,True)) randFourOfAKinds)
+
+
+      -- describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
+      --   it "returns 10000 different fullDeck shuffles using the global random generator" $ do
+      --     (isUnique randdecks) `shouldBe` True
+
+      -- describe "Game.Implement.Card.Standard.Poker allPossibleHands / mkHand / isHand functions" $ do
+      --   it "confirms that sets of each hand are disjoint and that total count correct" $ do
+      --     confirmDisjoint `shouldBe` (allHandsCountExpected, True)
+      --   it "confirms the total number of poker hands" $ do
+      --     allHandsCount `shouldBe` allHandsCountExpected
+      --   it "confirms the total number of royal flushes" $ do
+      --     (length allRoyalFlush) `shouldBe` allRoyalFlushCountExpected
+      --   it "confirms the total number of straight flushes" $ do
+      --     (length allStraightFlush) `shouldBe` allStraightFlushCountExpected
+      --   it "confirms the total number of four-of-a-kinds" $ do
+      --     (length allFourOfAKind) `shouldBe` allFourOfAKindCountExpected
+      --   it "confirms the total number of full houses" $ do
+      --     (length allFullHouse) `shouldBe` allFullHouseCountExpected
+      --   it "confirms the total number of flushes" $ do
+      --     (length allFlush) `shouldBe` allFlushCountExpected
+      --   it "confirms the total number of straights" $ do
+      --     (length allStraight) `shouldBe` allStraightCountExpected
+      --   it "confirms the total number of three-of-a-kinds" $ do
+      --     (length allThreeOfAKind) `shouldBe` allThreeOfAKindCountExpected
+      --   it "confirms the total number of two-pairs" $ do
+      --     (length allTwoPair) `shouldBe` allTwoPairCountExpected
+      --   it "confirms the total number of pairs" $ do
+      --     (length allPair) `shouldBe` allPairCountExpected
+      --   it "confirms the total number of high card hands" $ do
+      --     (length allHighCard) `shouldBe` allHighCardCountExpected
 
