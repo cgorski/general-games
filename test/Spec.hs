@@ -130,7 +130,7 @@ main =
         r = do
           h <- randomFlush
           return (h, isFlush $ cardsOfPokerHand h)
-      in evalRandIO $ replicateM 1000 r
+      in evalRandIO $ replicateM 100000 r
 
     randFourOfAKinds <-
       let
@@ -151,7 +151,7 @@ main =
         r = do
           h <- randomRoyalFlush
           return (h, isRoyalFlush $ cardsOfPokerHand h)
-      in evalRandIO $ replicateM 100 r
+      in evalRandIO $ replicateM 100000 r
 
     hspec $ do
       describe "Game.Implement.Card.draw (PlayingCard)" $ do

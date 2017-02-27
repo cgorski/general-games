@@ -85,6 +85,19 @@ uniqueNumList numToReturn n m  =
       deck <- shuffleM [n..m]
       return $ Just $ take numToReturn deck
 
+uniqueNumLists :: RandomGen g => [Int] -> Int -> Int -> Rand g (Maybe [[Int]])
+uniqueNumLists numToReturn n m  =
+  if ((sum numToReturn > ((m-n)+1)) || (length $ filter (\x -> x <= 0) numToReturn)>0)
+  then return Nothing
+  else
+    let
+      f _ [] out = reverse out
+      f deck (r:rs) out = f (drop r deck) rs ((take r deck):out) in
+    do
+      deck <- shuffleM [n..m]
+      return $ Just $ f deck numToReturn []
+
+
 suits :: [Suit]
 suits = [minBound .. maxBound]
 

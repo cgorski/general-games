@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiWayIf #-}
 -- |
 -- Module      : Game.Implement.Card
 -- Copyright   : (c) 2017 Christopher A. Gorski
@@ -37,7 +38,8 @@ module Game.Game.Poker
   , isTwoPair
   , isPair
   , isHighCard
-  
+
+  , mkHand
   , mkRoyalFlush
   , mkStraightFlush
   , mkFourOfAKind
@@ -69,6 +71,7 @@ import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 import Data.List (tails,nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
+import System.Random.Shuffle (shuffleM)
 
 
 randomAceRank :: MonadRandom m => m AceRank
@@ -150,8 +153,7 @@ randomFourOfAKind =
     randRank <- iterateUntil (\r -> r /= randRank4) randomRank
     randRanks <- return $ randRank:(replicate 4 randRank4)
     randSuit <- randomSuit
-    randSuits <- return (replicate 5 randSuit)
-    suitLst <- return (replicate 5 randSuit)
+    randSuits <- return [randSuit, Clubs, Diamonds, Hearts, Spades]
     mergedLst <- zipWithM (\r s -> return(PlayingCard r s)) randRanks randSuits
     shuffleSet <- shuffle mergedLst
     return $ PokerHand FourOfAKind $ shuffleSet
@@ -259,7 +261,7 @@ hasNumNOfRank i num hand =
 
 mkHighCard :: [PlayingCard] -> Maybe PokerHand
 mkHighCard hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (not $ isPair hand)
          && (not $ isTwoPair hand)
          && (not $ isThreeOfAKind hand)
@@ -281,7 +283,7 @@ isHighCard hand
 
 mkPair :: [PlayingCard] -> Maybe PokerHand
 mkPair hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNumNOfRank 2 1 hand)
          && (not $ isFullHouse hand)
       then Just (PokerHand Pair hand)
@@ -295,7 +297,7 @@ isPair hand
 
 mkTwoPair :: [PlayingCard] -> Maybe PokerHand
 mkTwoPair hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNumNOfRank 2 2 hand)
          && (not $ isFullHouse hand) 
       then Just (PokerHand TwoPair hand)
@@ -310,7 +312,7 @@ isTwoPair hand
 
 mkThreeOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkThreeOfAKind hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNOfRank 3 hand)
          && (not $ isFullHouse hand)
       then Just (PokerHand ThreeOfAKind hand)
@@ -336,7 +338,7 @@ mkConsecutiveRanks hand =
 
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       let consecRanks  = mkConsecutiveRanks hand
           isConsecRanks = isJust consecRanks in
         if isConsecRanks
@@ -353,7 +355,7 @@ isStraight hand
 
 mkFlush :: [PlayingCard] -> Maybe PokerHand
 mkFlush hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (isSameSuit hand)
          && (not $ isRoyalFlush hand)
          && (not $ isStraightFlush hand) 
@@ -368,7 +370,7 @@ isFlush hand
 
 mkFullHouse :: [PlayingCard] -> Maybe PokerHand
 mkFullHouse hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNOfRank 3 hand)
          && (hasNOfRank 2 hand)
       then Just (PokerHand FullHouse hand)
@@ -382,7 +384,7 @@ isFullHouse hand
     
 mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkFourOfAKind hand
-  | isPokerHandSize hand = 
+  | isValidPokerHand hand = 
       if (hasNOfRank 4 hand)
       then Just (PokerHand FourOfAKind hand)
       else Nothing
@@ -395,7 +397,7 @@ isFourOfAKind hand
                 
 mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
 mkStraightFlush hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       let consecRanks  = mkConsecutiveRanks hand
           isConsecRanks = isJust consecRanks in
         if isConsecRanks
@@ -411,8 +413,8 @@ isStraightFlush hand
   | otherwise = False
 
 mkRoyalFlush :: [PlayingCard] -> Maybe PokerHand
-mkRoyalFlush hand
-  | isPokerHandSize hand =
+mkRoyalFlush hand 
+  | isValidPokerHand hand =
       if (isSameSuit hand)
       then
         let
@@ -431,9 +433,9 @@ isRoyalFlush hand
   | isJust $ mkRoyalFlush hand = True
   | otherwise = False
 
-isPokerHandSize :: [PlayingCard] -> Bool
-isPokerHandSize hand 
-   | (length hand) == 5 = True
+isValidPokerHand :: [PlayingCard] -> Bool
+isValidPokerHand hand 
+   | ((length hand) == 5) && ((dedupe hand) == hand) = True
    | otherwise = False
 
 choose :: Ord r => Int -> [r] -> [[r]]
