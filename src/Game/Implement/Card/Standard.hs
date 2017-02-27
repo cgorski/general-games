@@ -6,6 +6,7 @@ module Game.Implement.Card.Standard
 
 import Control.Monad.Random
 import Game.Implement.Card
+import System.Random.Shuffle(shuffleM)
 
 
 data Rank =
@@ -75,6 +76,14 @@ randomSuitR l u =
       return $ toEnum randomn
 
 
+uniqueNumList :: RandomGen g => Int -> Int -> Int -> Rand g (Maybe [Int])
+uniqueNumList numToReturn n m  =
+  if (numToReturn > ((m-n)+1)) || (numToReturn < 0)
+  then return Nothing
+  else
+    do
+      deck <- shuffleM [n..m]
+      return $ Just $ take numToReturn deck
 
 suits :: [Suit]
 suits = [minBound .. maxBound]

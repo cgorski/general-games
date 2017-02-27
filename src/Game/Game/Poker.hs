@@ -50,8 +50,10 @@ module Game.Game.Poker
   , mkHighCard
   
   , randomStraight
+  , randomFlush
   , randomFourOfAKind
   , randomStraightFlush
+  , randomRoyalFlush
   
   , mkConsecutiveRanks
   )
@@ -59,12 +61,12 @@ module Game.Game.Poker
    
   where
 
-import Control.Monad.Random
+
 import Control.Monad.Loops
+import Control.Monad.Random
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
-
 import Data.List (tails,nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
 
@@ -104,6 +106,8 @@ data PokerHandType =
 
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
+
+
 randomStraight :: RandomGen g => Rand g PokerHand
 randomStraight =
   let
@@ -121,8 +125,24 @@ randomStraight =
     do
       hand <- iterateUntil (\h -> (not $ isStraightFlush h) && (not $ isRoyalFlush h)) l
       aceRank <- return (if (toRank $  hand !! 0) == Ace then AceLow else AceHigh)
-      return $ PokerHand (Straight aceRank) hand
+      shuffledHand <- shuffle hand
+      return $ PokerHand (Straight aceRank) shuffledHand
 
+randomFlush :: RandomGen g => Rand g PokerHand
+randomFlush =
+  let
+    l = do
+      numLst <- uniqueNumList 5 0 12
+      rankLst :: [Rank] <- return $ map (\n -> toEnum n) $ fromJust $ numLst
+      randSuit <- randomSuit
+      suitLst :: [Suit] <- return $ replicate 5 randSuit
+      cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst 
+      return cardset
+  in
+    do
+      hand <- iterateUntil (\h -> (not $ isRoyalFlush h) && (not $ isStraightFlush h)) l
+      return $ PokerHand Flush hand
+      
 randomFourOfAKind :: RandomGen g => Rand g PokerHand
 randomFourOfAKind =
   do
@@ -153,12 +173,23 @@ randomStraightFlush =
     do
       hand <- iterateUntil (\h -> (not $ isRoyalFlush h)) l
       aceRank <- return (if (toRank $  hand !! 0) == Ace then AceLow else AceHigh)
-      return $ PokerHand (Straight aceRank) hand
+      shuffledHand <- shuffle hand
+      return $ PokerHand (StraightFlush aceRank) shuffledHand
 
-    
-    
-    
-      
+randomRoyalFlush :: RandomGen g => Rand g PokerHand
+randomRoyalFlush =
+  let
+    mkRanklst :: [Rank]
+    mkRanklst = Ace : (map (\m -> toEnum m) [9..12])
+    mergelst r s = return(PlayingCard r s) in
+    do 
+      startRank :: Int <- getRandomR(0,9)
+      randSuit <- randomSuit
+      suitlst :: [Suit] <- return (replicate 5 randSuit)
+      cardset <- zipWithM mergelst mkRanklst suitlst
+      shuffledHand <- shuffle cardset
+      return $ PokerHand RoyalFlush shuffledHand
+
 mkHand :: [PlayingCard] -> Maybe PokerHand
 mkHand hand =
   let checks =
