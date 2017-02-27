@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Game.Implement.Card
 -- Copyright   : (c) 2017 Christopher A. Gorski
@@ -16,8 +17,10 @@ module Game.Implement.Card
   where
 
 import Control.Monad.Random
+import Control.Monad.Loops
 import System.Random.Shuffle (shuffleM)
 import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1')
+import Data.Maybe (fromJust)
 
 -- |
 -- Represents a physical card with no order and no value.
@@ -33,10 +36,19 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   fullDeck :: [c]
   dedupe :: [c] -> [c]
   draw :: [Int] -> [c] -> Maybe ([[c]],[c])
-  shuffle :: MonadRandom m => [c] -> m [c]
+  shuffle :: RandomGen m => [c] -> Rand m [c]
+  randomCard :: RandomGen m => Rand m c
   fullDeck = [minBound .. maxBound]
   dedupe l = nub l
   shuffle deck = shuffleM deck
+  randomCard =
+    let
+      minB = minBound :: (Bounded c, Card c) => c
+      maxB = maxBound :: (Bounded c, Card c) => c in
+      do
+        randomd <- getRandomR(fromEnum minB, fromEnum maxB)
+        return $ toEnum randomd
+      
   draw handSizeLst deck 
     | let
         total = (foldl1' (+) handSizeLst)

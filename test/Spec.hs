@@ -4,6 +4,7 @@ import Game.Game.Poker
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 
+
 allHandsCount :: Int
 allHandsCount = length allPossibleHands
 allHandsCountExpected :: Int
@@ -117,6 +118,76 @@ main =
   do
     randdecks <- evalRandIO $ replicateM 10000 shuffledDeck;
 
+    randHighCards <-
+      let
+        r = do
+          h <- randomHighCard
+          return (h, isHighCard $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randPairs <-
+      let
+        r = do
+          h <- randomPair
+          return (h, isPair $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randTwoPairs <-
+      let
+        r = do
+          h <- randomTwoPair
+          return (h, isTwoPair $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randThreeOfAKinds <-
+      let
+        r = do
+          h <- randomThreeOfAKind
+          return (h, isThreeOfAKind $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randStraights <-
+      let
+        r = do
+          h <- randomStraight
+          return (h, isStraight $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randFlushes <-
+      let
+        r = do
+          h <- randomFlush
+          return (h, isFlush $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randFullHouses <-
+      let
+        r = do
+          h <- randomFullHouse
+          return (h, isFullHouse $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randFourOfAKinds <-
+      let
+        r = do
+          h <- randomFourOfAKind
+          return (h, isFourOfAKind $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randStraightFlushes <-
+      let
+        r = do
+          h <- randomStraightFlush
+          return (h, isStraightFlush $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
+    randRoyalFlushes <-
+      let
+        r = do
+          h <- randomRoyalFlush
+          return (h, isRoyalFlush $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
     hspec $ do
       describe "Game.Implement.Card.draw (PlayingCard)" $ do
         it "returns drawn hands from a deck, plus the remaining deck" $ do
@@ -132,15 +203,92 @@ main =
         it "returns unique cards" $ do
           isUnique (fullDeck :: [PlayingCard]) `shouldBe` True
 
-      describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
-        it "returns 10000 different fullDeck shuffles using the global random generator" $ do
-          (isUnique randdecks) `shouldBe` True
   
       describe "Game.Implement.Card.Standard.Poker.isRoyalFlush" $ do
         it "confirms that [AH, QH, KH, JH, TH] is a Royal Flush" $ do
           (isRoyalFlush royalFlush) `shouldBe` True
         it "confirms that [AH, QH, 8H, JH, TH] is not a Royal Flush" $ do
           (isRoyalFlush royalFlushNot) `shouldBe` False
+
+      describe "Game.Game.Poker.randomHighCard" $ do
+        it "returns a HighCard of typeOfPokerHand HighCard" $ do
+           hand <- evalRandIO randomHighCard
+           typeOfPokerHand hand `shouldBe` HighCard
+        it "returns 100000 random HighCards" $ do 
+          randHighCards `shouldBe` (map (\(h,_) -> (h,True)) randHighCards) 
+
+      describe "Game.Game.Poker.randomPair" $ do
+        it "returns a Pair of typeOfPokerHand Pair" $ do
+           hand <- evalRandIO randomPair
+           typeOfPokerHand hand `shouldBe` Pair
+        it "returns 100000 random Pairs" $ do 
+          randPairs `shouldBe` (map (\(h,_) -> (h,True)) randPairs) 
+
+      describe "Game.Game.Poker.randomTwoPair" $ do
+        it "returns a TwoPair of typeOfPokerHand TwoPair" $ do
+           hand <- evalRandIO randomTwoPair
+           typeOfPokerHand hand `shouldBe` TwoPair
+        it "returns 100000 random TwoPairs" $ do 
+          randTwoPairs `shouldBe` (map (\(h,_) -> (h,True)) randTwoPairs) 
+        
+      describe "Game.Game.Poker.randomThreeOfAKind" $ do
+        it "returns a ThreeOfAKind of typeOfPokerHand ThreeOfAKind" $ do
+           hand <- evalRandIO randomThreeOfAKind
+           typeOfPokerHand hand `shouldBe` ThreeOfAKind
+        it "returns 100000 random ThreeOfAKinds" $ do 
+          randThreeOfAKinds `shouldBe` (map (\(h,_) -> (h,True)) randThreeOfAKinds) 
+        
+      describe "Game.Game.Poker.randomStraight" $ do
+        it "returns a Straight of typeOfPokerHand Straight" $ do
+           hand <- evalRandIO randomStraight
+           typeOfPokerHand hand `shouldSatisfy`
+             \t -> t == Straight AceHigh || t == Straight AceLow
+        it "returns 100000 random Straights" $ do 
+          randStraights `shouldBe` (map (\(h,_) -> (h,True)) randStraights) 
+
+      describe "Game.Game.Poker.randomFlush" $ do
+        it "returns a Flush of typeOfPokerHand Flush" $ do
+           hand <- evalRandIO randomFlush
+           typeOfPokerHand hand `shouldBe` Flush
+        it "returns 100000 random Flushes" $ do 
+          randFlushes `shouldBe` (map (\(h,_) -> (h,True)) randFlushes) 
+        
+      describe "Game.Game.Poker.randomFullHouse" $ do
+        it "returns a FullHouse of typeOfPokerHand FullHouse" $ do
+           hand <- evalRandIO randomFullHouse
+           typeOfPokerHand hand `shouldBe` FullHouse
+        it "returns 100000 random Full Houses" $ do 
+          randFullHouses `shouldBe` (map (\(h,_) -> (h,True)) randFullHouses)
+
+      describe "Game.Game.Poker.randomFourOfAKind" $ do
+        it "returns a FourOfAKind of typeOfPokerHand FourOfAKind" $ do
+           hand <- evalRandIO randomFourOfAKind
+           typeOfPokerHand hand `shouldBe` FourOfAKind
+        it "returns 100000 random Four-of-a-Kinds" $ do 
+          randFourOfAKinds `shouldBe` (map (\(h,_) -> (h,True)) randFourOfAKinds)
+
+
+      describe "Game.Game.Poker.randomStraightFlush" $ do
+        it "returns a StraightFlush of typeOfPokerHand StraightFlush" $ do
+           hand <- evalRandIO randomStraightFlush
+           typeOfPokerHand hand `shouldSatisfy`
+             \t -> t == StraightFlush AceHigh || t == StraightFlush AceLow
+        it "returns 100000 random Straight Flushes" $ do 
+          randStraightFlushes `shouldBe` (map (\(h,_) -> (h,True)) randStraightFlushes) 
+
+      describe "Game.Game.Poker.randomRoyalFlush" $ do
+        it "returns a RoyalFlush of typeOfPokerHand RoyalFlush" $ do
+           hand <- evalRandIO randomRoyalFlush
+           typeOfPokerHand hand `shouldBe` RoyalFlush
+        it "returns 100000 random Royal Flushes" $ do 
+          randRoyalFlushes `shouldBe` (map (\(h,_) -> (h,True)) randRoyalFlushes) 
+
+
+
+      describe "Game.Implement.Card.shuffle (PlayingCard)" $ do
+        it "returns 10000 different fullDeck shuffles using the global random generator" $ do
+          (isUnique randdecks) `shouldBe` True
+
       describe "Game.Implement.Card.Standard.Poker allPossibleHands / mkHand / isHand functions" $ do
         it "confirms that sets of each hand are disjoint and that total count correct" $ do
           confirmDisjoint `shouldBe` (allHandsCountExpected, True)

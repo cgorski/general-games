@@ -1,9 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Game.Implement.Card.Standard
   where
 
+import Control.Monad.Random
 import Game.Implement.Card
+import System.Random.Shuffle(shuffleM)
+
 
 data Rank =
   Ace |
@@ -19,7 +23,26 @@ data Rank =
   Jack |
   Queen |
   King
+
   deriving (Show, Enum, Eq, Ord, Bounded)
+
+randomRank :: RandomGen m => Rand m Rank
+randomRank =
+  let
+    min = minBound :: Rank
+    max = maxBound :: Rank in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      return $ toEnum randomn
+
+randomRankR :: RandomGen m => Rank -> Rank -> Rand m Rank
+randomRankR l u =
+  let
+    min = l :: Rank
+    max = u :: Rank in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+      return $ toEnum randomn
 
 ranks :: [Rank]
 ranks = [minBound .. maxBound]
@@ -33,6 +56,47 @@ data Suit =
   Hearts |
   Spades
   deriving (Show, Enum, Eq, Ord, Bounded)
+
+randomSuit :: RandomGen m => Rand m Suit
+randomSuit =
+  let
+    min = minBound :: Suit
+    max = maxBound :: Suit in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      return $ toEnum randomn
+
+randomSuitR :: RandomGen m => Suit -> Suit -> Rand m Suit
+randomSuitR l u =
+  let
+    min = l :: Suit
+    max = u :: Suit in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+      return $ toEnum randomn
+
+
+uniqueNumList :: RandomGen g => Int -> Int -> Int -> Rand g (Maybe [Int])
+uniqueNumList numToReturn n m  =
+  if (numToReturn > ((m-n)+1)) || (numToReturn < 0)
+  then return Nothing
+  else
+    do
+      deck <- shuffleM [n..m]
+      return $ Just $ take numToReturn deck
+
+uniqueNumLists :: RandomGen g => [Int] -> Int -> Int -> Rand g (Maybe [[Int]])
+uniqueNumLists numToReturn n m  =
+  if ((sum numToReturn > ((m-n)+1)) || (length $ filter (\x -> x <= 0) numToReturn)>0)
+  then return Nothing
+  else
+    let
+      f _ [] out = reverse out
+      f deck (r:rs) out = f (drop r deck) rs ((take r deck):out) in
+    do
+      deck <- shuffleM [n..m]
+      return $ Just $ f deck numToReturn []
+
 
 suits :: [Suit]
 suits = [minBound .. maxBound]
@@ -71,6 +135,9 @@ instance ValuedCard PlayingCard Suit where
 
 toSuit :: PlayingCard -> Suit
 toSuit (PlayingCard _ s) = s
+
+
+
 
 
 

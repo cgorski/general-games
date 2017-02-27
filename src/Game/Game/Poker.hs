@@ -1,26 +1,106 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
-
+{-# LANGUAGE MultiWayIf #-}
+-- |
+-- Module      : Game.Implement.Card
+-- Copyright   : (c) 2017 Christopher A. Gorski
+-- License     : MIT
+-- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
+--
+-- The Game.Game.Poker module provides operations for five card poker.
 module Game.Game.Poker
+  (
+    AceRank (..)
+  , PokerHand
+  , PokerHandType(..)
+  
+  , cardsOfPokerHand
+  , typeOfPokerHand
+  
+  , allPossibleHands
+
+  , allRoyalFlush
+  , allStraightFlush
+  , allFourOfAKind
+  , allFullHouse
+  , allFlush
+  , allStraight
+  , allThreeOfAKind
+  , allTwoPair
+  , allPair
+  , allHighCard
+  
+  , isRoyalFlush
+  , isStraightFlush
+  , isFourOfAKind
+  , isFullHouse
+  , isFlush
+  , isStraight
+  , isThreeOfAKind
+  , isTwoPair
+  , isPair
+  , isHighCard
+
+  , mkHand
+  , mkRoyalFlush
+  , mkStraightFlush
+  , mkFourOfAKind
+  , mkFullHouse
+  , mkFlush
+  , mkStraight
+  , mkThreeOfAKind
+  , mkTwoPair
+  , mkPair
+  , mkHighCard
+
+  , randomHighCard 
+  , randomPair
+  , randomTwoPair
+  , randomThreeOfAKind
+  , randomStraight
+  , randomFlush
+  , randomFullHouse
+  , randomFourOfAKind
+  , randomStraightFlush
+  , randomRoyalFlush
+  
+  , mkConsecutiveRanks
+  )
+
+   
   where
 
+
+import Control.Monad.Loops
+import Control.Monad.Random
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
-
 import Data.List (tails,nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
+import System.Random.Shuffle (shuffleM)
 
 
-type RankHand = [PlayingCard] 
-type KickerHand = [PlayingCard]
-data RankKicker = RankHand KickerHand deriving(Eq,Show)
-
-data AceRank = AceHigh | AceLow deriving (Eq, Show)
-
+randomAceRank :: MonadRandom m => m AceRank
+randomAceRank =
+  let
+    minB = minBound :: AceRank
+    maxB = maxBound :: AceRank in
+    do
+      (randomn :: Int) <- getRandomR(fromEnum minB, fromEnum maxB);
+      return $ toEnum randomn
 orderOfAceRank :: AceRank -> Order
 orderOfAceRank AceHigh = AceHighRankOrder
 orderOfAceRank AceLow = AceLowRankOrder
+
+-- |
+-- Indicates if a poker hand uses the Ace as a high card or a low card.
+--
+-- >>>
+data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
+
+cardsOfPokerHand (PokerHand _ h) = h
+typeOfPokerHand (PokerHand t _) = t
 
 data PokerHandType =
   HighCard 
@@ -35,23 +115,185 @@ data PokerHandType =
   | RoyalFlush 
   deriving(Eq,Show)
 
-data PokerHandSplit = PokerHandType RankKicker deriving(Eq,Show)
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
-mkBestHand :: [PlayingCard] -> Maybe PokerHand
-mkBestHand hand =
+randomHighCard :: RandomGen g => Rand g PokerHand
+randomHighCard =
+  let r = do
+        randHand <- replicateM 5 randomCard
+        return randHand 
+  in
+    do 
+      candidate <- r
+      hand <- iterateUntil (\h -> isHighCard h) r
+      return $ PokerHand HighCard hand
+    
+
+randomPair :: RandomGen g => Rand g PokerHand
+randomPair =
+  do
+    numLstR <- uniqueNumList 4 0 12
+    rank1pair <- return $ replicate 2 $ toEnum $ (fromJust numLstR) !! 0
+    rank2 <- return $ toEnum $ (fromJust numLstR) !! 1
+    rank3 <- return $ toEnum $ (fromJust numLstR) !! 2
+    rank4 <- return $ toEnum $ (fromJust numLstR) !! 3
+    rankLst <- return $ rank4:rank3:rank2:rank1pair
+    numLstS1 <- uniqueNumList 2 0 3
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suit2 <- randomSuit
+    suit3 <- randomSuit
+    suit4 <- randomSuit
+    suitLst <- return $ suit4:suit3:suit2:suitLst1
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand Pair shuffleset
+
+randomTwoPair :: RandomGen g => Rand g PokerHand
+randomTwoPair =
+  do
+    numLstR <- uniqueNumList 3 0 12
+    rank1 <- return $ replicate 2 $ toEnum $ (fromJust numLstR) !! 0
+    rank2 <- return $ replicate 2 $ toEnum $ (fromJust numLstR) !! 1
+    rank3 <- return $ toEnum $ (fromJust numLstR) !! 2
+    rankLst :: [Rank] <- return $ rank3:(rank1 ++ rank2)
+    numLstS1 <- uniqueNumList 2 0 3
+    numLstS2 <- uniqueNumList 2 0 3
+    numS3 <- randomSuit
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suitLst2 <- return $ map (\r -> toEnum r) $ fromJust numLstS2
+    suitLst <- return $ numS3:(suitLst1 ++ suitLst2)
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand TwoPair shuffleset
+
+
+randomThreeOfAKind :: RandomGen g => Rand g PokerHand
+randomThreeOfAKind =
+  do
+    numLst <- uniqueNumList 3 0 12
+    rank1 <- return $ replicate 3 $ toEnum $ (fromJust numLst) !! 0
+    rank2 <- return $ map (\r -> toEnum r) $ drop 1 (fromJust numLst)
+    rankLst :: [Rank] <- return $ rank1 ++ rank2
+    numLstS1 <- uniqueNumList 3 0 3
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suitLst2 <- replicateM 2 randomSuit
+    suitLst <- return $ suitLst1 ++ suitLst2
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand ThreeOfAKind shuffleset
+
+
+randomStraight :: RandomGen g => Rand g PokerHand
+randomStraight =
+  let
+    mkRanklst :: Int -> [Rank]
+    mkRanklst n = map (\m -> toEnum ((m+n) `mod` 13) ) [0..4] 
+    mergelst r s = return(PlayingCard r s)
+    l = do
+      startRank :: Int <- getRandomR(0,9)
+
+      ranklst <- return (mkRanklst startRank)
+      suitlst :: [Suit] <- replicateM 5 randomSuit
+      cardset <- zipWithM mergelst ranklst suitlst
+      return cardset
+  in
+    do
+      hand <- iterateUntil (\h -> (not $ isStraightFlush h) && (not $ isRoyalFlush h)) l
+      aceRank <- return (if (toRank $  hand !! 0) == Ace then AceLow else AceHigh)
+      shuffledHand <- shuffle hand
+      return $ PokerHand (Straight aceRank) shuffledHand
+
+randomFlush :: RandomGen g => Rand g PokerHand
+randomFlush =
+  let
+    l = do
+      numLst <- uniqueNumList 5 0 12
+      rankLst :: [Rank] <- return $ map (\n -> toEnum n) $ fromJust $ numLst
+      randSuit <- randomSuit
+      suitLst :: [Suit] <- return $ replicate 5 randSuit
+      cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst 
+      return cardset
+  in
+    do
+      hand <- iterateUntil (\h -> (not $ isRoyalFlush h) && (not $ isStraightFlush h)) l
+      return $ PokerHand Flush hand
+
+randomFullHouse :: RandomGen g => Rand g PokerHand
+randomFullHouse =
+  do
+    numLstR <- uniqueNumList 2 0 12
+    rank1 <- return $ toEnum $ (fromJust numLstR) !! 0
+    rank2 <- return $ toEnum $ (fromJust numLstR) !! 1      
+    rankLst :: [Rank] <- return [rank1, rank1, rank1, rank2, rank2]
+    numLstS1 <- uniqueNumList 3 0 3
+    numLstS2 <- uniqueNumList 2 0 3
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suitLst2 <- return $ map (\r -> toEnum r) $ fromJust numLstS2
+    suitLst <- return $ suitLst1 ++ suitLst2
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand FullHouse shuffleset
+      
+randomFourOfAKind :: RandomGen g => Rand g PokerHand
+randomFourOfAKind =
+  do
+    randRank4 <- randomRank
+    randRank <- iterateUntil (\r -> r /= randRank4) randomRank
+    randRanks <- return $ randRank:(replicate 4 randRank4)
+    randSuit <- randomSuit
+    randSuits <- return [randSuit, Clubs, Diamonds, Hearts, Spades]
+    mergedLst <- zipWithM (\r s -> return(PlayingCard r s)) randRanks randSuits
+    shuffleSet <- shuffle mergedLst
+    return $ PokerHand FourOfAKind $ shuffleSet
+
+randomStraightFlush :: RandomGen g => Rand g PokerHand
+randomStraightFlush =
+  let
+    mkRanklst :: Int -> [Rank]
+    mkRanklst n = map (\m -> toEnum ((m+n) `mod` 13) ) [0..4] 
+    mergelst r s = return(PlayingCard r s)
+    l = do 
+      startRank :: Int <- getRandomR(0,9)
+      ranklst <- return (mkRanklst startRank)
+      randSuit <- randomSuit
+      suitlst :: [Suit] <- return (replicate 5 randSuit)
+      cardset <- zipWithM mergelst ranklst suitlst
+      return cardset 
+  in
+    do
+      hand <- iterateUntil (\h -> (not $ isRoyalFlush h)) l
+      aceRank <- return (if (toRank $  hand !! 0) == Ace then AceLow else AceHigh)
+      shuffledHand <- shuffle hand
+      return $ PokerHand (StraightFlush aceRank) shuffledHand
+
+randomRoyalFlush :: RandomGen g => Rand g PokerHand
+randomRoyalFlush =
+  let
+    mkRanklst :: [Rank]
+    mkRanklst = Ace : (map (\m -> toEnum m) [9..12])
+    mergelst r s = return(PlayingCard r s) in
+    do 
+      startRank :: Int <- getRandomR(0,9)
+      randSuit <- randomSuit
+      suitlst :: [Suit] <- return (replicate 5 randSuit)
+      cardset <- zipWithM mergelst mkRanklst suitlst
+      shuffledHand <- shuffle cardset
+      return $ PokerHand RoyalFlush shuffledHand
+
+mkHand :: [PlayingCard] -> Maybe PokerHand
+mkHand hand =
   let checks =
-        [mkHighCard hand
-        ,mkPair hand
-        ,mkTwoPair hand
-        ,mkThreeOfAKind hand
-        ,mkStraight hand
-        ,mkFlush hand
-        ,mkFullHouse hand
-        ,mkFourOfAKind hand
-        ,mkStraightFlush hand
-        ,mkRoyalFlush hand]
-      cat = catMaybes checks
+        [mkHighCard
+        ,mkPair
+        ,mkTwoPair
+        ,mkThreeOfAKind
+        ,mkStraight
+        ,mkFlush
+        ,mkFullHouse
+        ,mkFourOfAKind
+        ,mkStraightFlush
+        ,mkRoyalFlush]
+      cat = catMaybes $ map (\f -> f hand) checks
   in 
     if length cat == 0
     then Nothing
@@ -107,7 +349,7 @@ hasNumNOfRank i num hand =
 
 mkHighCard :: [PlayingCard] -> Maybe PokerHand
 mkHighCard hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (not $ isPair hand)
          && (not $ isTwoPair hand)
          && (not $ isThreeOfAKind hand)
@@ -129,7 +371,7 @@ isHighCard hand
 
 mkPair :: [PlayingCard] -> Maybe PokerHand
 mkPair hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNumNOfRank 2 1 hand)
          && (not $ isFullHouse hand)
       then Just (PokerHand Pair hand)
@@ -143,7 +385,7 @@ isPair hand
 
 mkTwoPair :: [PlayingCard] -> Maybe PokerHand
 mkTwoPair hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNumNOfRank 2 2 hand)
          && (not $ isFullHouse hand) 
       then Just (PokerHand TwoPair hand)
@@ -158,7 +400,7 @@ isTwoPair hand
 
 mkThreeOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkThreeOfAKind hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNOfRank 3 hand)
          && (not $ isFullHouse hand)
       then Just (PokerHand ThreeOfAKind hand)
@@ -184,7 +426,7 @@ mkConsecutiveRanks hand =
 
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       let consecRanks  = mkConsecutiveRanks hand
           isConsecRanks = isJust consecRanks in
         if isConsecRanks
@@ -201,7 +443,7 @@ isStraight hand
 
 mkFlush :: [PlayingCard] -> Maybe PokerHand
 mkFlush hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (isSameSuit hand)
          && (not $ isRoyalFlush hand)
          && (not $ isStraightFlush hand) 
@@ -216,7 +458,7 @@ isFlush hand
 
 mkFullHouse :: [PlayingCard] -> Maybe PokerHand
 mkFullHouse hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       if (hasNOfRank 3 hand)
          && (hasNOfRank 2 hand)
       then Just (PokerHand FullHouse hand)
@@ -230,7 +472,7 @@ isFullHouse hand
     
 mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkFourOfAKind hand
-  | isPokerHandSize hand = 
+  | isValidPokerHand hand = 
       if (hasNOfRank 4 hand)
       then Just (PokerHand FourOfAKind hand)
       else Nothing
@@ -243,7 +485,7 @@ isFourOfAKind hand
                 
 mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
 mkStraightFlush hand
-  | isPokerHandSize hand =
+  | isValidPokerHand hand =
       let consecRanks  = mkConsecutiveRanks hand
           isConsecRanks = isJust consecRanks in
         if isConsecRanks
@@ -259,8 +501,8 @@ isStraightFlush hand
   | otherwise = False
 
 mkRoyalFlush :: [PlayingCard] -> Maybe PokerHand
-mkRoyalFlush hand
-  | isPokerHandSize hand =
+mkRoyalFlush hand 
+  | isValidPokerHand hand =
       if (isSameSuit hand)
       then
         let
@@ -279,9 +521,9 @@ isRoyalFlush hand
   | isJust $ mkRoyalFlush hand = True
   | otherwise = False
 
-isPokerHandSize :: [PlayingCard] -> Bool
-isPokerHandSize hand 
-   | (length hand) == 5 = True
+isValidPokerHand :: [PlayingCard] -> Bool
+isValidPokerHand hand 
+   | ((length hand) == 5) && ((dedupe hand) == hand) = True
    | otherwise = False
 
 choose :: Ord r => Int -> [r] -> [[r]]
@@ -290,6 +532,7 @@ choose n lst = do
   (x:xs) <- tails lst
   rest <- choose (n-1) xs
   return $ x : rest
+
 
 allPossibleHands :: [[PlayingCard]]
 allPossibleHands = choose 5 fullDeck
