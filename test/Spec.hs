@@ -118,6 +118,13 @@ main =
   do
     randdecks <- evalRandIO $ replicateM 10000 shuffledDeck;
 
+    randHighCards <-
+      let
+        r = do
+          h <- randomHighCard
+          return (h, isHighCard $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 100000 r
+
     randPairs <-
       let
         r = do
@@ -202,6 +209,13 @@ main =
           (isRoyalFlush royalFlush) `shouldBe` True
         it "confirms that [AH, QH, 8H, JH, TH] is not a Royal Flush" $ do
           (isRoyalFlush royalFlushNot) `shouldBe` False
+
+      describe "Game.Game.Poker.randomHighCard" $ do
+        it "returns a HighCard of typeOfPokerHand HighCard" $ do
+           hand <- evalRandIO randomHighCard
+           typeOfPokerHand hand `shouldBe` HighCard
+        it "returns 100000 random HighCards" $ do 
+          randHighCards `shouldBe` (map (\(h,_) -> (h,True)) randHighCards) 
 
       describe "Game.Game.Poker.randomPair" $ do
         it "returns a Pair of typeOfPokerHand Pair" $ do

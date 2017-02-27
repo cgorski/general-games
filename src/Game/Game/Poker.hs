@@ -53,6 +53,7 @@ module Game.Game.Poker
   , mkPair
   , mkHighCard
 
+  , randomHighCard 
   , randomPair
   , randomTwoPair
   , randomThreeOfAKind
@@ -115,6 +116,18 @@ data PokerHandType =
   deriving(Eq,Show)
 
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
+
+randomHighCard :: RandomGen g => Rand g PokerHand
+randomHighCard =
+  let r = do
+        randHand <- replicateM 5 randomCard
+        return randHand 
+  in
+    do 
+      candidate <- r
+      hand <- iterateUntil (\h -> isHighCard h) r
+      return $ PokerHand HighCard hand
+    
 
 randomPair :: RandomGen g => Rand g PokerHand
 randomPair =
