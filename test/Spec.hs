@@ -118,19 +118,33 @@ main =
   do
     randdecks <- evalRandIO $ replicateM 10000 shuffledDeck;
 
+    randThreeOfAKinds <-
+      let
+        r = do
+          h <- randomThreeOfAKind
+          return (h, isThreeOfAKind $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 1000 r
+
     randStraights <-
       let
         r = do
           h <- randomStraight
           return (h, isStraight $ cardsOfPokerHand h)
-      in evalRandIO $ replicateM 100000 r
+      in evalRandIO $ replicateM 1000 r
 
     randFlushes <-
       let
         r = do
           h <- randomFlush
           return (h, isFlush $ cardsOfPokerHand h)
-      in evalRandIO $ replicateM 100000 r
+      in evalRandIO $ replicateM 1000 r
+
+    randFullHouses <-
+      let
+        r = do
+          h <- randomFullHouse
+          return (h, isFullHouse $ cardsOfPokerHand h)
+      in evalRandIO $ replicateM 1000 r
 
     randFourOfAKinds <-
       let
@@ -176,11 +190,18 @@ main =
           (isRoyalFlush royalFlushNot) `shouldBe` False
 
       describe "Game.Game.Poker.randomStraight" $ do
-        it "returns 100000 random Flushes" $ do 
-          randFlushes `shouldBe` (map (\(h,_) -> (h,True)) randFlushes) 
+        
+        it "returns 100000 random ThreeOfAKinds" $ do 
+          randThreeOfAKinds `shouldBe` (map (\(h,_) -> (h,True)) randThreeOfAKinds) 
         
         it "returns 100000 random Straights" $ do 
           randStraights `shouldBe` (map (\(h,_) -> (h,True)) randStraights) 
+
+        it "returns 100000 random Flushes" $ do 
+          randFlushes `shouldBe` (map (\(h,_) -> (h,True)) randFlushes) 
+        
+        it "returns 100000 random Full Houses" $ do 
+          randFullHouses `shouldBe` (map (\(h,_) -> (h,True)) randFullHouses)
 
         it "returns 100000 random Four-of-a-Kinds" $ do 
           randFourOfAKinds `shouldBe` (map (\(h,_) -> (h,True)) randFourOfAKinds)

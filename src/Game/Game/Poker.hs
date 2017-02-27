@@ -50,9 +50,11 @@ module Game.Game.Poker
   , mkTwoPair
   , mkPair
   , mkHighCard
-  
+
+  , randomThreeOfAKind
   , randomStraight
   , randomFlush
+  , randomFullHouse
   , randomFourOfAKind
   , randomStraightFlush
   , randomRoyalFlush
@@ -110,6 +112,21 @@ data PokerHandType =
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
 
+randomThreeOfAKind :: RandomGen g => Rand g PokerHand
+randomThreeOfAKind =
+  do
+    numLst <- uniqueNumList 3 0 12
+    rank1 <- return $ replicate 3 $ toEnum $ (fromJust numLst) !! 0
+    rank2 <- return $ map (\r -> toEnum r) $ drop 1 (fromJust numLst)
+    rankLst :: [Rank] <- return $ rank1 ++ rank2
+    numLstS1 <- uniqueNumList 3 0 3
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suitLst2 <- replicateM 2 randomSuit
+    suitLst <- return $ suitLst1 ++ suitLst2
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand ThreeOfAKind shuffleset
+
 
 randomStraight :: RandomGen g => Rand g PokerHand
 randomStraight =
@@ -145,6 +162,22 @@ randomFlush =
     do
       hand <- iterateUntil (\h -> (not $ isRoyalFlush h) && (not $ isStraightFlush h)) l
       return $ PokerHand Flush hand
+
+randomFullHouse :: RandomGen g => Rand g PokerHand
+randomFullHouse =
+  do
+    numLstR <- uniqueNumList 2 0 12
+    rank1 <- return $ toEnum $ (fromJust numLstR) !! 0
+    rank2 <- return $ toEnum $ (fromJust numLstR) !! 1      
+    rankLst :: [Rank] <- return [rank1, rank1, rank1, rank2, rank2]
+    numLstS1 <- uniqueNumList 3 0 3
+    numLstS2 <- uniqueNumList 2 0 3
+    suitLst1 <- return $ map (\r -> toEnum r) $ fromJust numLstS1
+    suitLst2 <- return $ map (\r -> toEnum r) $ fromJust numLstS2
+    suitLst <- return $ suitLst1 ++ suitLst2
+    cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
+    shuffleset <- shuffle cardset
+    return $ PokerHand FullHouse shuffleset
       
 randomFourOfAKind :: RandomGen g => Rand g PokerHand
 randomFourOfAKind =
