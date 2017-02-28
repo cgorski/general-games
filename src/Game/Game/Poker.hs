@@ -10,15 +10,22 @@
 -- The Game.Game.Poker module provides operations for five card poker.
 module Game.Game.Poker
   (
-    AceRank (..)
-  , PokerHand
+    -- * Poker Hand Types
+    PokerHand
   , PokerHandType(..)
-  
+  , AceRank (..)
+
   , cardsOfPokerHand
   , typeOfPokerHand
-  
-  , allPossibleHands
 
+  -- * Building Hands
+  , mkHand
+
+  -- * Hand Type Existence Checks
+  , isHand
+  
+  -- * Sets of Hand Types
+  , allPossibleHands
   , allRoyalFlush
   , allStraightFlush
   , allFourOfAKind
@@ -29,30 +36,9 @@ module Game.Game.Poker
   , allTwoPair
   , allPair
   , allHighCard
-  
-  , isRoyalFlush
-  , isStraightFlush
-  , isFourOfAKind
-  , isFullHouse
-  , isFlush
-  , isStraight
-  , isThreeOfAKind
-  , isTwoPair
-  , isPair
-  , isHighCard
 
-  , mkHand
-  , mkRoyalFlush
-  , mkStraightFlush
-  , mkFourOfAKind
-  , mkFullHouse
-  , mkFlush
-  , mkStraight
-  , mkThreeOfAKind
-  , mkTwoPair
-  , mkPair
-  , mkHighCard
 
+  -- * Random Hands
   , randomHighCard 
   , randomPair
   , randomTwoPair
@@ -63,8 +49,6 @@ module Game.Game.Poker
   , randomFourOfAKind
   , randomStraightFlush
   , randomRoyalFlush
-  
-  , mkConsecutiveRanks
   )
 
    
@@ -78,30 +62,27 @@ import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
 import Data.List (tails,nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
-import System.Random.Shuffle (shuffleM)
 
 
-randomAceRank :: MonadRandom m => m AceRank
-randomAceRank =
-  let
-    minB = minBound :: AceRank
-    maxB = maxBound :: AceRank in
-    do
-      (randomn :: Int) <- getRandomR(fromEnum minB, fromEnum maxB);
-      return $ toEnum randomn
-orderOfAceRank :: AceRank -> Order
-orderOfAceRank AceHigh = AceHighRankOrder
-orderOfAceRank AceLow = AceLowRankOrder
 
 -- |
 -- Indicates if a poker hand uses the Ace as a high card or a low card.
 --
 -- >>>
-data AceRank = AceHigh | AceLow deriving (Eq, Show, Enum, Bounded)
+data AceRank = AceHigh | AceLow deriving (Eq, Show, Ord, Enum, Bounded)
 
+-- |
+-- Return the cards in a 'PokerHand'
+cardsOfPokerHand :: PokerHand -> [PlayingCard]
 cardsOfPokerHand (PokerHand _ h) = h
+
+-- |
+-- Return the 'PokerHandType' of a 'PokerHand'
+typeOfPokerHand :: PokerHand -> PokerHandType
 typeOfPokerHand (PokerHand t _) = t
 
+-- |
+-- The type of a 'PokerHand'. 
 data PokerHandType =
   HighCard 
   | Pair 
@@ -115,8 +96,29 @@ data PokerHandType =
   | RoyalFlush 
   deriving(Eq,Show)
 
+
+-- |
+-- A poker hand. Constructors are hidden, so any hand encapsulated in this type
+-- can be considered a valid hand.
+--
+-- >>> deck <- evalRandIO $ shuffle $ (fullDeck :: [PlayingCard])
+-- >>> hand = draw1_ 5 deck
+-- >>> hand
+-- [Five of Diamonds,Jack of Spades,Queen of Spades,Queen of Diamonds,Jack of Hearts]
+--
+-- >>> pokerhand = fromJust $ mkHand hand
+-- >>> pokerhand
+-- PokerHand TwoPair [Five of Diamonds,Jack of Spades,Queen of Spades,Queen of Diamonds,Jack of Hearts]
+--
+-- >>> typeOfPokerHand pokerhand
+-- TwoPair
+--
+-- >>> cardsOfPokerHand pokerhand
+-- [Five of Diamonds,Jack of Spades,Queen of Spades,Queen of Diamonds,Jack of Hearts]
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
 
+-- |
+-- Return a random hand that is not any other hand, also known as "High Card"
 randomHighCard :: RandomGen g => Rand g PokerHand
 randomHighCard =
   let r = do
@@ -124,11 +126,11 @@ randomHighCard =
         return randHand 
   in
     do 
-      candidate <- r
       hand <- iterateUntil (\h -> isHighCard h) r
       return $ PokerHand HighCard hand
     
-
+-- |
+-- Return a random hand that is a Pair
 randomPair :: RandomGen g => Rand g PokerHand
 randomPair =
   do
@@ -148,6 +150,8 @@ randomPair =
     shuffleset <- shuffle cardset
     return $ PokerHand Pair shuffleset
 
+-- |
+-- Return a random hand that is a Two Pair
 randomTwoPair :: RandomGen g => Rand g PokerHand
 randomTwoPair =
   do
@@ -167,6 +171,8 @@ randomTwoPair =
     return $ PokerHand TwoPair shuffleset
 
 
+-- |
+-- Return a random hand that is a Three of a Kind
 randomThreeOfAKind :: RandomGen g => Rand g PokerHand
 randomThreeOfAKind =
   do
@@ -182,7 +188,8 @@ randomThreeOfAKind =
     shuffleset <- shuffle cardset
     return $ PokerHand ThreeOfAKind shuffleset
 
-
+-- |
+-- Return a random hand that is a Straight
 randomStraight :: RandomGen g => Rand g PokerHand
 randomStraight =
   let
@@ -203,6 +210,8 @@ randomStraight =
       shuffledHand <- shuffle hand
       return $ PokerHand (Straight aceRank) shuffledHand
 
+-- |
+-- Return a random hand that is a Flush
 randomFlush :: RandomGen g => Rand g PokerHand
 randomFlush =
   let
@@ -218,6 +227,8 @@ randomFlush =
       hand <- iterateUntil (\h -> (not $ isRoyalFlush h) && (not $ isStraightFlush h)) l
       return $ PokerHand Flush hand
 
+-- |
+-- Return a random hand that is a Full House
 randomFullHouse :: RandomGen g => Rand g PokerHand
 randomFullHouse =
   do
@@ -233,7 +244,9 @@ randomFullHouse =
     cardset <- zipWithM (\r s -> return(PlayingCard r s)) rankLst suitLst
     shuffleset <- shuffle cardset
     return $ PokerHand FullHouse shuffleset
-      
+
+-- |
+-- Return a random hand that is a Four of a Kind
 randomFourOfAKind :: RandomGen g => Rand g PokerHand
 randomFourOfAKind =
   do
@@ -246,6 +259,8 @@ randomFourOfAKind =
     shuffleSet <- shuffle mergedLst
     return $ PokerHand FourOfAKind $ shuffleSet
 
+-- |
+-- Return a random hand that is a Straight Flush
 randomStraightFlush :: RandomGen g => Rand g PokerHand
 randomStraightFlush =
   let
@@ -266,6 +281,8 @@ randomStraightFlush =
       shuffledHand <- shuffle hand
       return $ PokerHand (StraightFlush aceRank) shuffledHand
 
+-- |
+-- Return a random hand that is a Royal Flush
 randomRoyalFlush :: RandomGen g => Rand g PokerHand
 randomRoyalFlush =
   let
@@ -273,13 +290,16 @@ randomRoyalFlush =
     mkRanklst = Ace : (map (\m -> toEnum m) [9..12])
     mergelst r s = return(PlayingCard r s) in
     do 
-      startRank :: Int <- getRandomR(0,9)
       randSuit <- randomSuit
       suitlst :: [Suit] <- return (replicate 5 randSuit)
       cardset <- zipWithM mergelst mkRanklst suitlst
       shuffledHand <- shuffle cardset
       return $ PokerHand RoyalFlush shuffledHand
 
+-- |
+-- Given a list of cards, find the best hand in the set. If the number
+-- of cards is not equal to five, or there are duplicate cards, mkHand
+-- returns Nothing
 mkHand :: [PlayingCard] -> Maybe PokerHand
 mkHand hand =
   let checks =
@@ -362,7 +382,29 @@ mkHighCard hand
       then Just (PokerHand HighCard hand)
       else Nothing
   | otherwise = Nothing
-      
+
+isHand :: PokerHandType -> [PlayingCard] -> Bool
+isHand HighCard cards = if isHighCard cards then True else False
+isHand Pair cards = if isPair cards then True else False
+isHand TwoPair cards = if isTwoPair cards then True else False
+isHand ThreeOfAKind cards = if isThreeOfAKind cards then True else False
+isHand (Straight AceHigh) cards =
+  let f (Just (PokerHand (Straight AceHigh) _)) = True
+      f _ = False in f $ mkStraight cards
+isHand (Straight AceLow) cards =
+  let f (Just (PokerHand (Straight AceLow) _)) = True
+      f _ = False in f $ mkStraight cards
+isHand Flush cards = if isFlush cards then True else False
+isHand FullHouse cards = if isFullHouse cards then True else False
+isHand FourOfAKind cards = if isFourOfAKind cards then True else False
+isHand (StraightFlush AceHigh) cards =
+  let f (Just (PokerHand (StraightFlush AceHigh) _)) = True
+      f _ = False in f $ mkStraightFlush cards
+isHand (StraightFlush AceLow) cards =
+  let f (Just (PokerHand (StraightFlush AceLow) _)) = True
+      f _ = False in f $ mkStraightFlush cards
+isHand RoyalFlush cards = if isRoyalFlush cards then True else False
+                
 isHighCard :: [PlayingCard] -> Bool
 isHighCard hand
   | isJust $ mkHighCard hand = True
@@ -422,8 +464,6 @@ mkConsecutiveRanks hand =
         | otherwise = Nothing
   in f hand
         
-        
-
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
   | isValidPokerHand hand =
