@@ -1,14 +1,41 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- |
+-- Module      : Game.Implement.Card.Standard
+-- Copyright   : (c) 2017 Christopher A. Gorski
+-- License     : MIT
+-- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
+--
+-- The Game.Game.Poker module defines structures and operations for
+-- a standard set of 52 playing cards.
 module Game.Implement.Card.Standard
+  (
+    PlayingCard(..)
+  , Rank(..)
+  , Suit(..)
+  , randomRank
+  , randomRankR
+  , randomSuit
+  , randomSuitR
+  , ranks
+  , nRanks
+  , toRank
+  , toRankLst
+  , suits
+  , nSuits
+  , toSuit
+  , uniqueNumList
+  , uniqueNumLists
+  )
   where
 
 import Control.Monad.Random
 import Game.Implement.Card
 import System.Random.Shuffle(shuffleM)
 
-
+-- |
+-- The rank of a standard playing card.
 data Rank =
   Ace |
   Two |
@@ -26,6 +53,8 @@ data Rank =
 
   deriving (Show, Enum, Eq, Ord, Bounded)
 
+-- |
+-- Returns a random standard playing card rank, with Ace low.
 randomRank :: RandomGen m => Rand m Rank
 randomRank =
   let
@@ -35,15 +64,21 @@ randomRank =
       (randomn :: Int) <- getRandomR(fromEnum minS, fromEnum maxS);
       return $ toEnum randomn
 
+-- |
+-- Returns a random standard playing card from a range, with Ace low.
 randomRankR :: RandomGen m => Rank -> Rank -> Rand m Rank
 randomRankR l u =
   do
     (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
     return $ toEnum randomn
 
+-- |
+-- Returns all standard playing card ranks, with Ace low.
 ranks :: [Rank]
 ranks = [minBound .. maxBound]
 
+-- |
+-- Returns the number of standard playing card ranksu.
 nRanks :: Int
 nRanks = length ranks 
 

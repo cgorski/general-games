@@ -18,7 +18,7 @@ module Game.Implement.Card
 
 import Control.Monad.Random
 import System.Random.Shuffle (shuffleM)
-import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1')
+import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1', tails)
 
 -- |
 -- Represents a physical card with no order and no value.
@@ -26,6 +26,15 @@ import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1')
 -- distingish cards for the purposes of manipulation within lists.
 -- Game value functions are provided by other typeclasses.
 class (Enum c, Eq c, Ord c, Bounded c) => Card c where
+  -- |
+  -- Return all combinations of size n of a deck of cards
+  choose :: Int -> [c] -> [[c]]
+  choose 0 _ = [[]]
+  choose n lst = do
+    (x:xs) <- tails lst
+    rest <- choose (n-1) xs
+    return $ x : rest
+
   -- |
   -- Return a full deck of cards. Cards are unique. Order is not guaranteed.
   --

@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiWayIf #-}
 -- |
--- Module      : Game.Implement.Card
+-- Module      : Game.Game.Poker
 -- Copyright   : (c) 2017 Christopher A. Gorski
 -- License     : MIT
 -- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
@@ -85,7 +85,7 @@ import Control.Monad.Random
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
-import Data.List (tails,nub,find) 
+import Data.List (nub,find) 
 import Data.Maybe (isJust, fromJust, catMaybes)
 
 
@@ -324,8 +324,8 @@ randomRoyalFlush =
 
 -- |
 -- Given a list of cards, find the best hand in the set. If the number
--- of cards is not equal to five, or there are duplicate cards, mkHand
--- returns Nothing
+-- of cards is not equal to five, or there are duplicate cards, mkHand returns
+-- Nothing.
 mkHand :: [PlayingCard] -> Maybe PokerHand
 mkHand hand =
   let checks =
@@ -393,6 +393,10 @@ hasNumNOfRank i num hand =
   then True
   else False
 
+
+-- |
+-- Verify that the best hand of a set of cards is a high card hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkHighCard :: [PlayingCard] -> Maybe PokerHand
 mkHighCard hand
   | isValidPokerHand hand =
@@ -409,6 +413,8 @@ mkHighCard hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Return True if a hand matches a specific PokerHandType. False otherwise.
 isHand :: PokerHandType -> [PlayingCard] -> Bool
 isHand HighCard cards = if isHighCard cards then True else False
 isHand Pair cards = if isPair cards then True else False
@@ -430,13 +436,19 @@ isHand (StraightFlush AceLow) cards =
   let f (Just (PokerHand (StraightFlush AceLow) _)) = True
       f _ = False in f $ mkStraightFlush cards
 isHand RoyalFlush cards = if isRoyalFlush cards then True else False
-                
+
+-- |
+-- Verify that the best hand of a set of cards is a high card hand,
+-- and if so, return True. Otherwise, return False.
 isHighCard :: [PlayingCard] -> Bool
 isHighCard hand
   | isJust $ mkHighCard hand = True
   | otherwise = False
 
 
+-- |
+-- Verify that the best hand of a set of cards is a pair hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkPair :: [PlayingCard] -> Maybe PokerHand
 mkPair hand
   | isValidPokerHand hand =
@@ -446,11 +458,17 @@ mkPair hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a pair hand,
+-- and if so, return True. Otherwise, return False.
 isPair :: [PlayingCard] -> Bool
 isPair hand
   | isJust $ mkPair hand = True
   | otherwise = False
 
+-- |
+-- Verify that the best hand of a set of cards is a two pair,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkTwoPair :: [PlayingCard] -> Maybe PokerHand
 mkTwoPair hand
   | isValidPokerHand hand =
@@ -460,12 +478,17 @@ mkTwoPair hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a two pair hand,
+-- and if so, return True. Otherwise, return False.
 isTwoPair :: [PlayingCard] -> Bool
 isTwoPair hand
   | isJust $ mkTwoPair hand = True
   | otherwise = False
 
-
+-- |
+-- Verify that the best hand of a set of cards is a three-of-a-kind hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkThreeOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkThreeOfAKind hand
   | isValidPokerHand hand =
@@ -475,6 +498,9 @@ mkThreeOfAKind hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a three-of-a-kind hand,
+-- and if so, return True. Otherwise, return False.
 isThreeOfAKind :: [PlayingCard] -> Bool
 isThreeOfAKind hand
   | isJust $ mkThreeOfAKind hand = True
@@ -489,7 +515,10 @@ mkConsecutiveRanks hand =
         | consecLow h2 = Just (sortCardsBy AceLowRankOrder h2, AceLow)
         | otherwise = Nothing
   in f hand
-        
+
+-- |
+-- Verify that the best hand of a set of cards is a straight hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkStraight :: [PlayingCard] -> Maybe PokerHand
 mkStraight hand
   | isValidPokerHand hand =
@@ -502,11 +531,17 @@ mkStraight hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a straight hand,
+-- and if so, return True. Otherwise, return False.
 isStraight :: [PlayingCard] -> Bool
 isStraight hand
   | isJust $ mkStraight hand = True
   | otherwise = False
-
+    
+-- |
+-- Verify that the best hand of a set of cards is a flush hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkFlush :: [PlayingCard] -> Maybe PokerHand
 mkFlush hand
   | isValidPokerHand hand =
@@ -517,11 +552,17 @@ mkFlush hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a flush hand,
+-- and if so, return True. Otherwise, return False.
 isFlush :: [PlayingCard] -> Bool
 isFlush hand
   | isJust $ mkFlush hand = True
   | otherwise = False
 
+-- |
+-- Verify that the best hand of a set of cards is a full house hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkFullHouse :: [PlayingCard] -> Maybe PokerHand
 mkFullHouse hand
   | isValidPokerHand hand =
@@ -531,11 +572,17 @@ mkFullHouse hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a full house hand,
+-- and if so, return True. Otherwise, return False.
 isFullHouse :: [PlayingCard] -> Bool
 isFullHouse hand
   | isJust $ mkFullHouse hand = True
   | otherwise = False
-    
+
+-- |
+-- Verify that the best hand of a set of cards is a four-of-a-kind hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkFourOfAKind :: [PlayingCard] -> Maybe PokerHand
 mkFourOfAKind hand
   | isValidPokerHand hand = 
@@ -544,11 +591,17 @@ mkFourOfAKind hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a four-of-a-kind hand,
+-- and if so, return True. Otherwise, return False.
 isFourOfAKind :: [PlayingCard] -> Bool
 isFourOfAKind hand
   | isJust $ mkFourOfAKind hand = True
   | otherwise = False
-                
+
+-- |
+-- Verify that the best hand of a set of cards is a straight flush hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkStraightFlush :: [PlayingCard] -> Maybe PokerHand
 mkStraightFlush hand
   | isValidPokerHand hand =
@@ -561,11 +614,18 @@ mkStraightFlush hand
       else Nothing
   | otherwise = Nothing
 
+-- |
+-- Verify that the best hand of a set of cards is a straight flush hand,
+-- and if so, return True. Otherwise, return False.
 isStraightFlush :: [PlayingCard] -> Bool
 isStraightFlush hand
   | isJust $ mkStraightFlush hand = True
   | otherwise = False
 
+               
+-- |
+-- Verify that the best hand of a set of cards is a royal flush hand,
+-- and if so, return a 'PokerHand'. Otherwise, return Nothing.
 mkRoyalFlush :: [PlayingCard] -> Maybe PokerHand
 mkRoyalFlush hand 
   | isValidPokerHand hand =
@@ -581,7 +641,9 @@ mkRoyalFlush hand
       else Nothing
   | otherwise = Nothing
 
-
+-- |
+-- Verify that the best hand of a set of cards is a royal flush hand,
+-- and if so, return True. Otherwise, return False.
 isRoyalFlush :: [PlayingCard] -> Bool
 isRoyalFlush hand
   | isJust $ mkRoyalFlush hand = True
@@ -592,44 +654,79 @@ isValidPokerHand hand
    | ((length hand) == 5) && ((dedupe hand) == hand) = True
    | otherwise = False
 
-choose :: Ord r => Int -> [r] -> [[r]]
-choose 0 _ = [[]]
-choose n lst = do
-  (x:xs) <- tails lst
-  rest <- choose (n-1) xs
-  return $ x : rest
 
-
+-- |
+-- All possible hands of a full deck of playing cards
 allPossibleHands :: [[PlayingCard]]
 allPossibleHands = choose 5 fullDeck
 
+-- |
+-- All royal flushes in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allRoyalFlush :: [[PlayingCard]]
 allRoyalFlush = [x | x <- allPossibleHands, isRoyalFlush x]
 
+-- |
+-- All straight flushes in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allStraightFlush :: [[PlayingCard]]
 allStraightFlush = [x | x <- allPossibleHands, isStraightFlush x]
 
+-- |
+-- All four-of-a-kinds in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allFourOfAKind :: [[PlayingCard]]
 allFourOfAKind = [x | x <- allPossibleHands, isFourOfAKind x]
 
+-- |
+-- All full houses in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allFullHouse :: [[PlayingCard]]
 allFullHouse = [x | x <- allPossibleHands, isFullHouse x]
 
+-- |
+-- All flushes in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allFlush :: [[PlayingCard]]
 allFlush = [x | x <- allPossibleHands, isFlush x]
 
+-- |
+-- All straights in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allStraight :: [[PlayingCard]]
 allStraight = [x | x <- allPossibleHands, isStraight x]
 
+-- |
+-- All three-of-a-kind in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allThreeOfAKind :: [[PlayingCard]]
 allThreeOfAKind = [x | x <- allPossibleHands, isThreeOfAKind x]
 
+-- |
+-- All two pairs in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allTwoPair :: [[PlayingCard]]
 allTwoPair = [x | x <- allPossibleHands, isTwoPair x]
 
+-- |
+-- All pairs in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allPair :: [[PlayingCard]]
 allPair = [x | x <- allPossibleHands, isPair x]
 
+-- |
+-- All high card hands in a full deck of playing cards.
+-- The current implementation traverses the entire list of allPossibleHands,
+-- and is not efficient.
 allHighCard :: [[PlayingCard]]
 allHighCard = [x | x <- allPossibleHands, isHighCard x]
 
