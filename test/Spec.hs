@@ -203,6 +203,13 @@ main =
         it "returns unique cards" $ do
           isUnique (fullDeck :: [PlayingCard]) `shouldBe` True
 
+      describe "Game.Game.Poker.isHand" $ do
+        it "confirms that an Ace low straight flush exists" $ do
+          isHand (StraightFlush AceLow) [PlayingCard Ace Spades, PlayingCard Two Spades, PlayingCard Three Spades, PlayingCard Four Spades, PlayingCard Five Spades] `shouldBe` True
+        it "confirms that an Ace high straight flush is not Ace low" $ do
+          isHand (StraightFlush AceLow) [PlayingCard Six Spades, PlayingCard Two Spades, PlayingCard Three Spades, PlayingCard Four Spades, PlayingCard Five Spades] `shouldBe` False
+        it "confirms that an Ace high straight flush exists" $ do
+          isHand (StraightFlush AceHigh) [PlayingCard Six Spades, PlayingCard Two Spades, PlayingCard Three Spades, PlayingCard Four Spades, PlayingCard Five Spades] `shouldBe` True
   
       describe "Game.Implement.Card.Standard.Poker.isRoyalFlush" $ do
         it "confirms that [AH, QH, KH, JH, TH] is a Royal Flush" $ do
@@ -289,7 +296,8 @@ main =
         it "returns 10000 different fullDeck shuffles using the global random generator" $ do
           (isUnique randdecks) `shouldBe` True
 
-      describe "Game.Implement.Card.Standard.Poker allPossibleHands / mkHand / isHand functions" $ do
+          
+      describe "Game.Game.Poker allPossibleHands / mkHand / isHand functions" $ do
         it "confirms that sets of each hand are disjoint and that total count correct" $ do
           confirmDisjoint `shouldBe` (allHandsCountExpected, True)
         it "confirms the total number of poker hands" $ do
@@ -314,4 +322,6 @@ main =
           (length allPair) `shouldBe` allPairCountExpected
         it "confirms the total number of high card hands" $ do
           (length allHighCard) `shouldBe` allHighCardCountExpected
+          
+        
 

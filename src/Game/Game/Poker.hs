@@ -91,7 +91,8 @@ import Data.Maybe (isJust, fromJust, catMaybes)
 
 
 -- |
--- Indicates if a poker hand uses the Ace as a high card or a low card.
+-- Indicates if a poker hand uses the Ace as a high card or a low card. AceLow is only
+-- used when an Ace is in a hand. Any hand without an Ace is considered AceHigh.
 --
 -- >>>
 data AceRank = AceHigh | AceLow deriving (Eq, Show, Ord, Enum, Bounded)
@@ -556,7 +557,7 @@ mkStraightFlush hand
         if isConsecRanks
         && (isSameSuit hand)
         && (not $ isRoyalFlush hand)
-      then Just (PokerHand (Straight $ snd $ fromJust consecRanks) hand)
+      then Just (PokerHand (StraightFlush $ snd $ fromJust consecRanks) hand)
       else Nothing
   | otherwise = Nothing
 
