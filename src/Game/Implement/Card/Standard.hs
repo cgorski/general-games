@@ -1,14 +1,41 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- |
+-- Module      : Game.Implement.Card.Standard
+-- Copyright   : (c) 2017 Christopher A. Gorski
+-- License     : MIT
+-- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
+--
+-- The Game.Game.Poker module defines structures and operations for
+-- a standard set of 52 playing cards.
 module Game.Implement.Card.Standard
+  (
+    PlayingCard(..)
+  , Rank(..)
+  , Suit(..)
+  , randomRank
+  , randomRankR
+  , randomSuit
+  , randomSuitR
+  , ranks
+  , nRanks
+  , toRank
+  , toRankLst
+  , suits
+  , nSuits
+  , toSuit
+  , uniqueNumList
+  , uniqueNumLists
+  )
   where
 
 import Control.Monad.Random
 import Game.Implement.Card
 import System.Random.Shuffle(shuffleM)
 
-
+-- |
+-- The rank of a standard playing card.
 data Rank =
   Ace |
   Two |
@@ -26,30 +53,37 @@ data Rank =
 
   deriving (Show, Enum, Eq, Ord, Bounded)
 
+-- |
+-- Returns a random standard playing card rank, with Ace low.
 randomRank :: RandomGen m => Rand m Rank
 randomRank =
   let
-    min = minBound :: Rank
-    max = maxBound :: Rank in
+    minS = minBound :: Rank
+    maxS = maxBound :: Rank in
     do
-      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      (randomn :: Int) <- getRandomR(fromEnum minS, fromEnum maxS);
       return $ toEnum randomn
 
+-- |
+-- Returns a random standard playing card from a range, with Ace low.
 randomRankR :: RandomGen m => Rank -> Rank -> Rand m Rank
 randomRankR l u =
-  let
-    min = l :: Rank
-    max = u :: Rank in
-    do
-      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
-      return $ toEnum randomn
+  do
+    (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+    return $ toEnum randomn
 
+-- |
+-- Returns all standard playing card ranks, with Ace low.
 ranks :: [Rank]
 ranks = [minBound .. maxBound]
 
+-- |
+-- Returns the number of unique standard playing card ranksu.
 nRanks :: Int
 nRanks = length ranks 
 
+-- |
+-- The suit of a standard playing card.
 data Suit =
   Clubs |
   Diamonds |
@@ -57,25 +91,27 @@ data Suit =
   Spades
   deriving (Show, Enum, Eq, Ord, Bounded)
 
+-- |
+-- Returns a random Suit.
 randomSuit :: RandomGen m => Rand m Suit
 randomSuit =
   let
-    min = minBound :: Suit
-    max = maxBound :: Suit in
+    minS = minBound :: Suit
+    maxS = maxBound :: Suit in
     do
-      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      (randomn :: Int) <- getRandomR(fromEnum minS, fromEnum maxS);
       return $ toEnum randomn
 
+-- |
+-- Returns a random suit in a given range.
 randomSuitR :: RandomGen m => Suit -> Suit -> Rand m Suit
 randomSuitR l u =
-  let
-    min = l :: Suit
-    max = u :: Suit in
-    do
-      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
-      return $ toEnum randomn
+  do
+    (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+    return $ toEnum randomn
 
-
+-- |
+-- Return a list of unique numbers of length n, within range r and s.
 uniqueNumList :: RandomGen g => Int -> Int -> Int -> Rand g (Maybe [Int])
 uniqueNumList numToReturn n m  =
   if (numToReturn > ((m-n)+1)) || (numToReturn < 0)
@@ -98,15 +134,24 @@ uniqueNumLists numToReturn n m  =
       return $ Just $ f deck numToReturn []
 
 
+-- |
+-- Returns all standard card suits.
 suits :: [Suit]
 suits = [minBound .. maxBound]
 
+-- |
+-- Returns the number of all standard card unique suits.
 nSuits :: Int
 nSuits = length suits
 
 instance Card PlayingCard where
 
+-- |
+-- A representation of a standard playing card, distinguishable by rank and suit.
 data PlayingCard = PlayingCard Rank Suit deriving (Eq, Ord, Bounded)
+
+-- |
+-- A type used to indicate if referring to the rank value of a card, or the suit value.
 data Value = RankValue | SuitValue deriving (Eq)
 
 instance Enum PlayingCard where
@@ -124,15 +169,21 @@ instance Show PlayingCard where
 instance ValuedCard PlayingCard Rank where
   toValue (PlayingCard r _) = r
 
+-- |
+-- Returns the 'Rank' of a 'PlayingCard'
 toRank :: PlayingCard -> Rank
 toRank c = toValue c 
 
+-- |
+-- Returns a list of 'Rank' of a list of 'PlayingCard'
 toRankLst :: [PlayingCard] -> [Rank]
 toRankLst l = toValueLst l
 
 instance ValuedCard PlayingCard Suit where
   toValue (PlayingCard _ s) = s
 
+-- |
+-- Returns the 'Suit' of a 'PlayingCard'
 toSuit :: PlayingCard -> Suit
 toSuit (PlayingCard _ s) = s
 
