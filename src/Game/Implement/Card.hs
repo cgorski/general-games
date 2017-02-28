@@ -17,10 +17,8 @@ module Game.Implement.Card
   where
 
 import Control.Monad.Random
-import Control.Monad.Loops
 import System.Random.Shuffle (shuffleM)
 import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1')
-import Data.Maybe (fromJust)
 
 -- |
 -- Represents a physical card with no order and no value.

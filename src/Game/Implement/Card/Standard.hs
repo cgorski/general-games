@@ -29,20 +29,17 @@ data Rank =
 randomRank :: RandomGen m => Rand m Rank
 randomRank =
   let
-    min = minBound :: Rank
-    max = maxBound :: Rank in
+    minS = minBound :: Rank
+    maxS = maxBound :: Rank in
     do
-      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      (randomn :: Int) <- getRandomR(fromEnum minS, fromEnum maxS);
       return $ toEnum randomn
 
 randomRankR :: RandomGen m => Rank -> Rank -> Rand m Rank
 randomRankR l u =
-  let
-    min = l :: Rank
-    max = u :: Rank in
-    do
-      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
-      return $ toEnum randomn
+  do
+    (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+    return $ toEnum randomn
 
 ranks :: [Rank]
 ranks = [minBound .. maxBound]
@@ -60,20 +57,17 @@ data Suit =
 randomSuit :: RandomGen m => Rand m Suit
 randomSuit =
   let
-    min = minBound :: Suit
-    max = maxBound :: Suit in
+    minS = minBound :: Suit
+    maxS = maxBound :: Suit in
     do
-      (randomn :: Int) <- getRandomR(fromEnum min, fromEnum max);
+      (randomn :: Int) <- getRandomR(fromEnum minS, fromEnum maxS);
       return $ toEnum randomn
 
 randomSuitR :: RandomGen m => Suit -> Suit -> Rand m Suit
 randomSuitR l u =
-  let
-    min = l :: Suit
-    max = u :: Suit in
-    do
-      (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
-      return $ toEnum randomn
+  do
+    (randomn :: Int) <- getRandomR(fromEnum l, fromEnum u);
+    return $ toEnum randomn
 
 
 uniqueNumList :: RandomGen g => Int -> Int -> Int -> Rand g (Maybe [Int])
