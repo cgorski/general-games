@@ -49,6 +49,31 @@ module Game.Game.Poker
   , randomFourOfAKind
   , randomStraightFlush
   , randomRoyalFlush
+
+  -- * Additional Hand Building Functions
+  , mkHighCard
+  , mkPair
+  , mkTwoPair
+  , mkThreeOfAKind
+  , mkStraight
+  , mkFlush
+  , mkFullHouse
+  , mkFourOfAKind
+  , mkStraightFlush
+  , mkRoyalFlush
+  
+  -- * Additional Hand Type Existence Checks
+  , isHighCard
+  , isPair
+  , isTwoPair
+  , isThreeOfAKind
+  , isStraight
+  , isFlush
+  , isFullHouse
+  , isFourOfAKind
+  , isStraightFlush
+  , isRoyalFlush
+
   )
 
    
