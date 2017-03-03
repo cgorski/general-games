@@ -27,8 +27,8 @@ allTwoPairCountExpected :: Int
 allTwoPairCountExpected = 123552
 allPairCountExpected :: Int
 allPairCountExpected = 1098240
-allHighCardCountExpected :: Int
-allHighCardCountExpected = 1302540
+-- allHighCardCountExpected :: Int
+-- allHighCardCountExpected = 1302540
 
 royalFlush :: [PlayingCard]
 royalFlush =
@@ -320,8 +320,8 @@ main =
           (length allTwoPair) `shouldBe` allTwoPairCountExpected
         it "confirms the total number of pairs" $ do
           (length allPair) `shouldBe` allPairCountExpected
-        it "confirms the total number of high card hands" $ do
-          (length allHighCard) `shouldBe` allHighCardCountExpected
+--        it "confirms the total number of high card hands" $ do
+--          (length allHighCard) `shouldBe` allHighCardCountExpected
           
         
 
