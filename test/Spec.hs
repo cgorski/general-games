@@ -27,8 +27,8 @@ allTwoPairCountExpected :: Int
 allTwoPairCountExpected = 123552
 allPairCountExpected :: Int
 allPairCountExpected = 1098240
--- allHighCardCountExpected :: Int
--- allHighCardCountExpected = 1302540
+allHighCardCountExpected :: Int
+allHighCardCountExpected = 1302540
 
 royalFlush :: [PlayingCard]
 royalFlush =
@@ -81,28 +81,28 @@ drawDeckExpectedOutput = Just
    [PlayingCard Three Clubs,
    PlayingCard Four Clubs])
 
--- confirmDisjoint :: (Int, Bool)
--- confirmDisjoint =
---   let mfunc1 hand = [mkRoyalFlush hand,
---                      mkStraightFlush hand,
---                      mkFourOfAKind hand,
---                      mkFullHouse hand,
---                      mkFlush hand,
---                      mkStraight hand,
---                      mkThreeOfAKind hand,
---                      mkTwoPair hand,
---                      mkPair hand,
---                      mkHighCard hand]
---       maybem (Just _) = 1
---       maybem Nothing = 0
---       countJust hand = sum $ map maybem $ mfunc1 hand
---       allSums = map countJust allPossibleHands
---       collect _  (outsum, False) = (outsum, False)
---       collect (x:xs) (outsum, _) =
---         collect xs (x+outsum, if x==0 || x==1 then True else False)
---       collect [] output = output 
---   in
---     collect allSums (0, True)
+confirmDisjoint :: (Int, Bool)
+confirmDisjoint =
+  let mfunc1 hand = [mkRoyalFlush hand,
+                     mkStraightFlush hand,
+                     mkFourOfAKind hand,
+                     mkFullHouse hand,
+                     mkFlush hand,
+                     mkStraight hand,
+                     mkThreeOfAKind hand,
+                     mkTwoPair hand,
+                     mkPair hand,
+                     mkHighCard hand]
+      maybem (Just _) = 1
+      maybem Nothing = 0
+      countJust hand = sum $ map maybem $ mfunc1 hand
+      allSums = map countJust allPossibleHands
+      collect _  (outsum, False) = (outsum, False)
+      collect (x:xs) (outsum, _) =
+        collect xs (x+outsum, if x==0 || x==1 then True else False)
+      collect [] output = output 
+  in
+    collect allSums (0, True)
 
 isUnique :: Eq a => [a] -> Bool
 isUnique lst = f lst True where
@@ -298,8 +298,8 @@ main =
 
           
       describe "Game.Game.Poker allPossibleHands / mkHand / isHand functions" $ do
---        it "confirms that sets of each hand are disjoint and that total count correct" $ do
---          confirmDisjoint `shouldBe` (allHandsCountExpected, True)
+        it "confirms that sets of each hand are disjoint and that total count correct" $ do
+          confirmDisjoint `shouldBe` (allHandsCountExpected, True)
         it "confirms the total number of poker hands" $ do
           allHandsCount `shouldBe` allHandsCountExpected
         it "confirms the total number of royal flushes" $ do
@@ -320,8 +320,8 @@ main =
           (length allTwoPair) `shouldBe` allTwoPairCountExpected
         it "confirms the total number of pairs" $ do
           (length allPair) `shouldBe` allPairCountExpected
---        it "confirms the total number of high card hands" $ do
---          (length allHighCard) `shouldBe` allHighCardCountExpected
+        it "confirms the total number of high card hands" $ do
+          (length allHighCard) `shouldBe` allHighCardCountExpected
           
         
 
