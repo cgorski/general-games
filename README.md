@@ -1,7 +1,7 @@
 general-games
 =============
 
-[![Hackage version](https://img.shields.io/hackage/v/general-games.svg?label=Hackage)](https://hackage.haskell.org/package/general-games) [![Stackage version](https://www.stackage.org/package/general-games/badge/lts?label=Stackage)](https://www.stackage.org/package/general-games) [![Build Status](https://travis-ci.org/cgorski/general-games.svg?branch=master)](https://travis-ci.org/cgorski/general-games)
+[![Hackage version](https://img.shields.io/hackage/v/general-games.svg?label=Hackage)](https://hackage.haskell.org/package/general-games) [![Stackage version](https://www.stackage.org/package/general-games/badge/nightly](https://www.stackage.org/package/general-games) [![Build Status](https://travis-ci.org/cgorski/general-games.svg?branch=master)](https://travis-ci.org/cgorski/general-games)
 
 * [Description](#description)
 * [Contribute](#contribute)
