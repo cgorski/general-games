@@ -168,6 +168,8 @@ class (Card c) => OrderedCard c o where
   lowestCardBy o cl = minimumBy (compareCardBy o) cl
   sortCardsBy o cl = sortBy (compareCardBy o) cl
 
+-- |
+-- Orderings dependent on the specific value type of a Card
 class (OrderedCard c o) => OrderedValuedCard c o vt where
   -- |
   -- Return an Int based on a card, an ordering and a value type.

@@ -111,7 +111,7 @@ randomSuitR l u =
     return $ toEnum randomn
 
 -- |
--- Return a list of unique numbers of length n, within range r and s.
+-- Return a list of unique numbers, of length s, drawn without replacement from the set [n..m]
 uniqueNumList :: RandomGen g => Int -> Int -> Int -> Rand g (Maybe [Int])
 uniqueNumList numToReturn n m  =
   if (numToReturn > ((m-n)+1)) || (numToReturn < 0)
@@ -120,7 +120,9 @@ uniqueNumList numToReturn n m  =
     do
       deck <- shuffleM [n..m]
       return $ Just $ take numToReturn deck
-
+      
+-- |
+-- Return lists of lists of unique numbers, of length [s], drawn without replacement from the set [n..m]
 uniqueNumLists :: RandomGen g => [Int] -> Int -> Int -> Rand g (Maybe [[Int]])
 uniqueNumLists numToReturn n m  =
   if ((sum numToReturn > ((m-n)+1)) || (length $ filter (\x -> x <= 0) numToReturn)>0)
