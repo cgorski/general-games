@@ -43,6 +43,11 @@ Suppose we want to draw some cards from our newly shuffled deck. There are a var
 >>> head allPokerHands
 [Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts]
 
+--- Or we can draw multple hands by taking n elements from the list.
+>>> take 5 allPokerHands
+[[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Ace of Hearts],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Queen of Spades],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Diamonds],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Nine of Clubs]]
+```
+
 ## Contribute
 
 For any problems, comments, or feedback please create an issue [here on GitHub](https://github.com/cgorski/general-games/issues).
