@@ -51,7 +51,7 @@ data Rank =
   Queen |
   King
 
-  deriving (Show, Enum, Eq, Ord, Bounded)
+  deriving (Show, Enum, Eq, Ord, Bounded, Read)
 
 -- |
 -- Returns a random standard playing card rank, with Ace low.
@@ -89,7 +89,7 @@ data Suit =
   Diamonds |
   Hearts |
   Spades
-  deriving (Show, Enum, Eq, Ord, Bounded)
+  deriving (Show, Enum, Eq, Ord, Bounded, Read)
 
 -- |
 -- Returns a random Suit.
@@ -167,6 +167,15 @@ instance Enum PlayingCard where
 
 instance Show PlayingCard where
   show (PlayingCard r s) = (show r) ++ " of " ++ (show s)
+
+instance Read PlayingCard where
+  readsPrec _ input =
+      [(PlayingCard r s,v) |
+       (rs, t) <- lex input,
+       (r, _) <- reads rs,
+       ("of",u) <- lex t,
+       (s, v) <- reads u]
+
 
 instance ValuedCard PlayingCard Rank where
   toValue (PlayingCard r _) = r

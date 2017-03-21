@@ -58,7 +58,14 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
   -- >>> draw [2,2,2,5] deck
   -- Just ([[Ace of Spades,Jack of Spades],[Queen of Hearts,Seven of Clubs],[Jack of Diamonds,Six of Hearts],[Jack of Hearts,Five of Spades,Three of Spades,Two of Diamonds,Ace of Hearts]],[Four of Clubs,Six of Diamonds,Four of Diamonds,Eight of Spades,Six of Clubs,Seven of Spades,Three of Diamonds,Ten of Diamonds,Eight of Hearts,Nine of Diamonds,Three of Clubs,Six of Spades,King of Clubs,Nine of Clubs,Four of Spades,Five of Diamonds,Nine of Spades,Queen of Spades,Ace of Diamonds,Four of Hearts,Two of Clubs,Five of Clubs,Two of Hearts,King of Diamonds,Ten of Spades,Eight of Clubs,Seven of Hearts,Three of Hearts,Queen of Diamonds,Queen of Clubs,Ten of Clubs,King of Hearts,Eight of Diamonds,Jack of Clubs,Ten of Hearts,Seven of Diamonds,Two of Spades,Nine of Hearts,King of Spades,Ace of Clubs,Five of Hearts])
   draw :: [Int] -> [c] -> Maybe ([[c]],[c])
-
+  
+  -- |
+  -- The same as 'draw', except throw away the deck
+  --
+  -- >>> deck <- evalRandIO $ shuffle $ (fullDeck :: [PlayingCard])
+  -- >>> draw_ [2,2,2,5] deck
+  -- Just [[Eight of Hearts,Queen of Hearts],[Two of Clubs,Seven of Diamonds],[Ten of Clubs,Three of Hearts],[Ace of Spades,Nine of Spades,Five of Spades,Four of Diamonds,Two of Spades]]
+  draw_ :: [Int] -> [c] -> Maybe [[c]]
   
   -- |
   -- The same as 'draw', except draw only one hand of specified size.
@@ -116,6 +123,12 @@ class (Enum c, Eq c, Ord c, Bounded c) => Card c where
             draw2 hst (newHand:handOutput, newDeck)
         in Just (draw2 handSizeLst ([],deck))
 
+  draw_ handSizes deck =
+    let f (Just (h, _)) = Just h
+        f _ = Nothing
+    in
+      f $ draw handSizes deck
+  
   draw1 handSize deck =
     let
       f (Just ([h], d)) = Just (h,d)
