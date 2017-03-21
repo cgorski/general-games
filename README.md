@@ -43,7 +43,7 @@ Suppose we want to draw some cards from our newly shuffled deck. There are a var
 >>> head allPokerHands
 [Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts]
 
---- Walking through the list will enumerate every combination of poker hand, as demonstrated:
+--- Walking through the list will enumerate every combination of poker hand.
 >>> take 5 allPokerHands
 [[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Ace of Hearts],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Queen of Spades],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Diamonds],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Nine of Clubs]]
 
