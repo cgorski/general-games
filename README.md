@@ -43,10 +43,25 @@ Suppose we want to draw some cards from our newly shuffled deck. There are a var
 >>> head allPokerHands
 [Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts]
 
---- Or we can draw multple hands by taking n elements from the list.
+--- Walking through the list will enumerate every combination of poker hand, as demonstrated:
 >>> take 5 allPokerHands
 [[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Ace of Hearts],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Queen of Spades],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Diamonds],[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Nine of Clubs]]
+
+--- It's useful to be able to draw hands from a shuffled deck.
+>>> draw1_ 5 shuffledDeck
+Just [Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts]
+
+--- Often we might want the remainder of the deck as well.
+>>> draw1 5 shuffledDeck
+Just ([Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts],[Ace of Hearts,Queen of Spades,Eight of Diamonds,Nine of Clubs,King of Diamonds,Four of Diamonds,Jack of Hearts,King of Spades,Ten of Hearts,Two of Hearts,Ten of Spades,Seven of Hearts,Ten of Diamonds,Five of Clubs,Queen of Diamonds,Three of Hearts,Six of Hearts,Three of Diamonds,Eight of Clubs,Seven of Clubs,Queen of Clubs,Four of Hearts,Jack of Diamonds,Seven of Diamonds,Ace of Clubs,Nine of Spades,Four of Spades,Three of Clubs,Ace of Spades,Jack of Spades,Queen of Hearts,King of Clubs,Two of Clubs,King of Hearts,Ace of Diamonds,Nine of Hearts,Six of Clubs,Jack of Clubs,Seven of Spades,Eight of Spades,Six of Spades,Three of Spades,Five of Spades,Two of Diamonds,Five of Hearts,Five of Diamonds,Nine of Diamonds])
+
+--- We can draw multiple hands, of multiple sizes, from a deck at once.
+--- A common scenario might be to draw hands for heads-up Texas Hold'em
+--- along with all of the community cards, and the remainder of the deck.
+>>> draw [5,2,2] shuffledDeck
+Just ([[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts],[Ace of Hearts,Queen of Spades],[Eight of Diamonds,Nine of Clubs]],[King of Diamonds,Four of Diamonds,Jack of Hearts,King of Spades,Ten of Hearts,Two of Hearts,Ten of Spades,Seven of Hearts,Ten of Diamonds,Five of Clubs,Queen of Diamonds,Three of Hearts,Six of Hearts,Three of Diamonds,Eight of Clubs,Seven of Clubs,Queen of Clubs,Four of Hearts,Jack of Diamonds,Seven of Diamonds,Ace of Clubs,Nine of Spades,Four of Spades,Three of Clubs,Ace of Spades,Jack of Spades,Queen of Hearts,King of Clubs,Two of Clubs,King of Hearts,Ace of Diamonds,Nine of Hearts,Six of Clubs,Jack of Clubs,Seven of Spades,Eight of Spades,Six of Spades,Three of Spades,Five of Spades,Two of Diamonds,Five of Hearts,Five of Diamonds,Nine of Diamonds])
 ```
+
 
 ## Contribute
 
