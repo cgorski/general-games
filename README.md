@@ -24,11 +24,24 @@ Suppose we want a full deck of standard playing cards:
 That's nice, but it might better to have a shuffled deck (your results will vary depending on the state of your RNG):
 
 ```haskell
->>> shuffledDeck = evalRandIO $ shuffle deck
+>>> shuffledDeck <- evalRandIO $ shuffle deck
 >>> shuffledDeck
 [Eight of Spades,Nine of Diamonds,Six of Diamonds,Jack of Diamonds,Ten of Spades,Six of Spades,Seven of Hearts,Four of Hearts,Nine of Hearts,Two of Clubs,Ace of Spades,Queen of Diamonds,Ace of Hearts,Eight of Clubs,Four of Spades,Eight of Hearts,Two of Diamonds,Seven of Clubs,Queen of Spades,Ace of Diamonds,Six of Clubs,Ace of Clubs,Three of Diamonds,Five of Diamonds,Queen of Hearts,Four of Clubs,Five of Spades,Ten of Hearts,Five of Clubs,Three of Spades,Three of Hearts,Two of Spades,Jack of Hearts,Six of Hearts,Five of Hearts,Eight of Diamonds,Three of Clubs,Seven of Spades,Ten of Clubs,Ten of Diamonds,King of Hearts,Two of Hearts,King of Diamonds,Seven of Diamonds,Queen of Clubs,Four of Diamonds,Nine of Clubs,Jack of Spades,King of Clubs,Jack of Clubs,Nine of Spades,King of Spades]
 ```
 
+Suppose we want to draw some cards from our newly shuffled deck. There are a variety of ways that we can do this:
+
+```haskell
+--- This will give us all poker hands in a list.
+>>> allPokerHands = choose 5 shuffledDeck
+
+--- Do we really have all poker hands?
+>>> length allPokerHands
+2598960 --- That seems right.
+
+--- We can draw a poker hand by taking the head of the list.
+>>> head allPokerHands
+[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts]
 
 ## Contribute
 
