@@ -27,12 +27,15 @@ library
                      , Game.Implement.Card.Standard
                      , Game.Implement.Card.Standard.Poker
                      , Game.Game.Poker
+                     , Game.Evolve.LinearCreature
 
   build-depends:       base >= 4.7 && < 5
                      , random-shuffle
                      , MonadRandom
                      , random
                      , monad-loops
+                     , containers
+                     , vector
   default-language:    Haskell2010
   ghc-options:         -Wall
 
