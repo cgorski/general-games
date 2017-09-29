@@ -16,6 +16,10 @@ module Game.Evolve.LinearCreature
   ,genomeReplicate
   ,cpuReplicate
   ,iReadSelf
+  ,cpuGenome
+  ,score
+  ,scoreCalc
+  ,scoreCpu
   )
   where
 
@@ -51,7 +55,7 @@ data Instruction =
   SwapCx | -- swap ax cx 
   SwapDx | -- swap ax dx
   MateLength | -- The length of a mate genome to ax
-  SelfLength | -- The length of a self genome to 
+  SelfLength | -- The length of a self genome to ax
   ReadMate | -- read instruction number bx mod len from mate and store type in ax
   ReadSelf | -- read instruction number bx mod len from self and store type in ax
   WriteChild | -- write instruction type ax to end of child
@@ -78,15 +82,39 @@ data CPU = CPU {
   jmpSignal :: Maybe Int
 } 
 
+-- instance Show CPU where
+--     show cpu = "ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
+--                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
+--                ++ " child: " ++ show (reverse (childGenome cpu)) ++ "\n"
 instance Show CPU where
     show cpu = "ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
-               ++ " child: " ++ show (reverse (childGenome cpu)) ++ "\n"
+               ++ " input: " ++ show (input cpu) ++ " output: " ++ show (output cpu) ++ "\n"
            
 cpuReplicate :: CPU
 cpuReplicate = newCpu {genome = genomeReplicate
                       ,mateGenome = genomeReplicate}
-           
+
+cpuGenome :: [Instruction] -> [Int] -> CPU
+cpuGenome g i = newCpu {genome = V.fromList g,
+                        mateGenome = V.fromList g,
+                        input = i
+                       }
+
+scoreCalc :: Int -> Int -> Double
+scoreCalc i o = sqrt $ fromIntegral ((i-o)^(2 :: Int))
+             
+score :: [Int] -> [Int] -> Int
+score inp out =
+    if (length $ inp) /= (length $ out)
+    then maxBound
+    else ceiling $ sum $ zipWith scoreCalc inp out
+
+scoreCpu :: CPU -> Int
+scoreCpu cpu = score (input cpu) (reverse $ output cpu)
+
+
+               
 execute :: CPU -> Int -> CPU
 execute cpu countmax 
     | (iCounter cpu) < countmax = execute (execInstruc cpu) countmax
@@ -160,7 +188,7 @@ newCpu = CPU { ax = 0,
                jmpSignal = Nothing}
                         
                    
-            
+genomeReplicate :: V.Vector Instruction            
 genomeReplicate =
     V.fromList [
           Incr,
@@ -231,6 +259,18 @@ genomeReplicate =
           SwapDx,
           Zero,
 
+          Incr,
+          WriteOutput,
+          Incr,
+          WriteOutput,
+          Incr,
+          WriteOutput,
+          Incr,
+          WriteOutput,
+          Incr,
+          WriteOutput,
+          Zero,
+              
           Incr,
           Neg,
           SwapDx,
