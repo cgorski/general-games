@@ -20,10 +20,15 @@ module Game.Evolve.LinearCreature
   ,score
   ,scoreCalc
   ,scoreCpu
+  ,runProg
   )
   where
 
 import Control.Monad.Random
+import Control.Monad.Writer (WriterT, runWriterT, tell)
+import Control.Monad.Trans (lift)
+import Control.Monad.LoopWhile (loop,while)
+import Control.Monad (when)
 import System.Random.Shuffle (shuffleM)
 import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1', tails)
 import qualified Data.Vector as V
@@ -101,6 +106,9 @@ cpuGenome g i = newCpu {genome = V.fromList g,
                         input = i
                        }
 
+cpuGenomeV :: V.Vector Instruction -> [Int] -> CPU
+cpuGenomeV g i = cpuGenome (V.toList g) i
+
 scoreCalc :: Int -> Int -> Double
 scoreCalc i o = sqrt $ fromIntegral ((i-o)^(2 :: Int))
              
@@ -113,6 +121,23 @@ score inp out =
 scoreCpu :: CPU -> Int
 scoreCpu cpu = score (input cpu) (reverse $ output cpu)
 
+runGeneration :: RandomGen m => Int -> [CPU] -> WriterT String (Rand m) Int
+runGeneration maxcount gen =
+    do
+    
+      x <- getRandomR(1,2)
+      tell "foo\n"
+      tell "bar\n"
+      return x
+
+             
+runProg :: IO ()
+runProg =
+    do
+      (v,o) <- evalRandIO $ runWriterT $ runGeneration 10 [cpuReplicate]
+      putStrLn $ show v
+      putStrLn o
+    
 
                
 execute :: CPU -> Int -> CPU
