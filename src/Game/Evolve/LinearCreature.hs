@@ -1,5 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+
 -- |
 -- Module      : Game.Implement.Card
 -- Copyright   : (c) 2017 Christopher A. Gorski
@@ -11,7 +12,7 @@ module Game.Evolve.LinearCreature
   (
    CPU(..)
   ,Instruction(..)
-  ,execute
+  ,executeCpu
   ,newCpu
   ,genomeReplicate
   ,cpuReplicate
@@ -21,11 +22,12 @@ module Game.Evolve.LinearCreature
   ,scoreCalc
   ,scoreCpu
   ,runProg
+  ,createInitGen
   )
   where
 
 import Control.Monad.Random
-import Control.Monad.Writer (WriterT, runWriterT, tell)
+import Control.Monad.Writer (WriterT, runWriterT, tell, Writer)
 import Control.Monad.Trans (lift)
 import Control.Monad.LoopWhile (loop,while)
 import Control.Monad (when)
@@ -34,6 +36,8 @@ import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1', tails)
 import qualified Data.Vector as V
 import qualified Data.Map as M
 import Data.Int (Int64)
+import Text.Printf (printf)
+import Data.Maybe (fromMaybe)
 
 data Instruction =
   Nop | -- do nothing
@@ -70,6 +74,7 @@ data Instruction =
 
   
 data CPU = CPU {
+  cpuid :: Maybe String,
   ax :: Int,
   bx :: Int,
   cx :: Int,
@@ -84,7 +89,8 @@ data CPU = CPU {
   mateGenome :: V.Vector Instruction,
   childGenome :: [Instruction],
   executed :: [CPU],
-  jmpSignal :: Maybe Int
+  jmpSignal :: Maybe Int,
+  parents :: Maybe (CPU,CPU)
 } 
 
 -- instance Show CPU where
@@ -96,18 +102,23 @@ instance Show CPU where
                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
                ++ " input: " ++ show (input cpu) ++ " output: " ++ show (output cpu) ++ "\n"
            
-cpuReplicate :: CPU
-cpuReplicate = newCpu {genome = genomeReplicate
-                      ,mateGenome = genomeReplicate}
+cpuReplicate :: [Int] -> String -> CPU
+cpuReplicate i cid = cpuGenome (V.toList genomeReplicate) i cid
 
-cpuGenome :: [Instruction] -> [Int] -> CPU
-cpuGenome g i = newCpu {genome = V.fromList g,
-                        mateGenome = V.fromList g,
-                        input = i
-                       }
+cpuGenome :: [Instruction] -> [Int] -> String -> CPU
+cpuGenome g i cid = newCpu {cpuid = Just cid,
+                            genome = V.fromList g,
+                            mateGenome = V.fromList g,
+                            input = i
+                           }
+leadz4 :: Int -> String
+leadz4 n = printf "%04d" n
 
-cpuGenomeV :: V.Vector Instruction -> [Int] -> CPU
-cpuGenomeV g i = cpuGenome (V.toList g) i
+gcid :: Int -> Int -> String
+gcid g c = (leadz4 g) ++ "--" ++ (leadz4 c)
+                    
+cpuGenomeV :: V.Vector Instruction -> [Int] -> String -> CPU
+cpuGenomeV g i cid = cpuGenome (V.toList g) i cid
 
 scoreCalc :: Int -> Int -> Double
 scoreCalc i o = sqrt $ fromIntegral ((i-o)^(2 :: Int))
@@ -121,28 +132,38 @@ score inp out =
 scoreCpu :: CPU -> Int
 scoreCpu cpu = score (input cpu) (reverse $ output cpu)
 
-runGeneration :: RandomGen m => Int -> [CPU] -> WriterT String (Rand m) Int
-runGeneration maxcount gen =
-    do
-    
-      x <- getRandomR(1,2)
-      tell "foo\n"
-      tell "bar\n"
-      return x
+createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
+createInitGen total g i =
+    [cpuGenome g i (gcid 0 n) | n <- [0..total-1]]
 
-             
+               
+runGeneration :: RandomGen m => Int -> Int -> [CPU] -> WriterT [String] (Rand m) [CPU]
+runGeneration maxcount gennum gencpus =
+    let showcpuid :: CPU -> String
+        showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
+        executec :: RandomGen m => CPU -> WriterT [String] (Rand m) CPU
+        executec cpu = 
+            do
+              tell ["Executing cpu ID: " ++ (showcpuid cpu)]
+              return $ executeCpu cpu maxcount
+    in
+      do
+        tell ["Running generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount)]
+        executed <- mapM executec gencpus
+        return executed
+
+
 runProg :: IO ()
 runProg =
     do
-      (v,o) <- evalRandIO $ runWriterT $ runGeneration 10 [cpuReplicate]
-      putStrLn $ show v
-      putStrLn o
+      (v,o) <- evalRandIO $ runWriterT $ runGeneration 100000 0 $ createInitGen 50 (V.toList genomeReplicate) [1,2,4,8,16,32,64]
+      mapM_ putStrLn o
+      mapM_ putStrLn $ map (\cpu -> show $ iPointer cpu) v
     
-
                
-execute :: CPU -> Int -> CPU
-execute cpu countmax 
-    | (iCounter cpu) < countmax = execute (execInstruc cpu) countmax
+executeCpu :: CPU -> Int -> CPU
+executeCpu cpu countmax 
+    | (iCounter cpu) < countmax = executeCpu (execInstruc cpu) countmax
     | otherwise = cpu
 
 
@@ -196,7 +217,8 @@ execInstruc cpu =
   in
     incrCpu newc
 
-newCpu = CPU { ax = 0,
+newCpu = CPU { cpuid = Nothing,
+               ax = 0,
                bx = 0,
                cx = 0,
                dx = 0,
@@ -210,7 +232,8 @@ newCpu = CPU { ax = 0,
                mateGenome = V.fromList [],
                childGenome = [],
                executed = [],
-               jmpSignal = Nothing}
+               jmpSignal = Nothing,
+               parents = Nothing }
                         
                    
 genomeReplicate :: V.Vector Instruction            
