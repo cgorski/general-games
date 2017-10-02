@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 
 -- |
@@ -23,6 +24,7 @@ module Game.Evolve.LinearCreature
   ,scoreCpu
   ,runProg
   ,createInitGen
+  ,preset
   )
   where
 
@@ -30,9 +32,10 @@ import Control.Monad.Random
 import Control.Monad.Writer (WriterT, runWriterT, tell, Writer)
 import Control.Monad.Trans (lift)
 import Control.Monad.LoopWhile (loop,while)
+import Control.Monad.Loops (iterateUntilM)
 import Control.Monad (when)
 import System.Random.Shuffle (shuffleM)
-import Data.List (nub, maximumBy, minimumBy, sortBy, foldl1', tails)
+import Data.List (splitAt, nub, maximumBy, minimumBy, sortBy, foldl1', tails)
 import qualified Data.Vector as V
 import qualified Data.Map as M
 import Data.Int (Int64)
@@ -98,7 +101,8 @@ data CPU = CPU {
 --                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
 --                ++ " child: " ++ show (reverse (childGenome cpu)) ++ "\n"
 instance Show CPU where
-    show cpu = "ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
+    show cpu = "cpuid: " ++ fromMaybe "[No ID Provided" (cpuid cpu)
+               ++ " ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
                ++ " input: " ++ show (input cpu) ++ " output: " ++ show (output cpu) ++ "\n"
            
@@ -121,24 +125,52 @@ cpuGenomeV :: V.Vector Instruction -> [Int] -> String -> CPU
 cpuGenomeV g i cid = cpuGenome (V.toList g) i cid
 
 scoreCalc :: Int -> Int -> Double
-scoreCalc i o = sqrt $ fromIntegral ((i-o)^(2 :: Int))
+scoreCalc expected given = sqrt $ fromIntegral ((expected-given)^(2 :: Int))
              
 score :: [Int] -> [Int] -> Int
-score inp out =
-    if (length $ inp) /= (length $ out)
-    then maxBound
-    else ceiling $ sum $ zipWith scoreCalc inp out
+score expected given =
+    let expectedlen = length expected
+        (given2, _) = splitAt expectedlen given
+        given2len = length given2
+    in
+      if given2len < expectedlen
+      then maxBound
+      else ceiling $ sum $ zipWith scoreCalc expected given
 
 scoreCpu :: CPU -> Int
 scoreCpu cpu = score (input cpu) (reverse $ output cpu)
 
+-- |
+-- determines how many children will be duplicated based on score rank and total number of parents to score
+-- the lower the scorerank, the better the score
+-- start with trival example, use exponention or better later
+-- survivalfactor is number of duplicates to create of creature
+gradeFunc :: Int -> Int -> Int
+gradeFunc scorerank numparents =
+    let survivalfactor = numparents - scorerank
+    in
+      if scorerank < 3
+      then survivalfactor * 5
+      else if scorerank > 20
+           then survivalfactor * 2
+           else survivalfactor
+
+gradePop :: [(CPU, Int)] -> [CPU]
+gradePop scores =
+    let lenscores = length scores
+        rank :: [(CPU, Int)] -> [CPU] -> Int -> [CPU]
+        rank [] ranked _ = ranked
+        rank ((cpu,_):xs) ranked n = rank xs ((replicate (gradeFunc n lenscores) cpu)++ranked) (n+1)
+    in
+      rank scores [] 0
+    
 createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
 createInitGen total g i =
     [cpuGenome g i (gcid 0 n) | n <- [0..total-1]]
 
                
-runGeneration :: RandomGen m => Int -> Int -> [CPU] -> WriterT [String] (Rand m) [CPU]
-runGeneration maxcount gennum gencpus =
+runGeneration :: RandomGen m => Int -> Int -> Double -> [CPU] -> WriterT [String] (Rand m) [CPU]
+runGeneration maxcount gennum mutateprob gencpus =
     let showcpuid :: CPU -> String
         showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
         executec :: RandomGen m => CPU -> WriterT [String] (Rand m) CPU
@@ -146,21 +178,93 @@ runGeneration maxcount gennum gencpus =
             do
               tell ["Executing cpu ID: " ++ (showcpuid cpu)]
               return $ executeCpu cpu maxcount
+
+        sortScore :: (CPU, Int) -> (CPU, Int) -> Ordering
+        sortScore (_,s1) (_,s2) = if s1 < s2
+                                  then LT
+                                  else
+                                      if s1 > s2
+                                      then GT
+                                      else EQ
+
     in
       do
         tell ["Running generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount)]
         executed <- mapM executec gencpus
+        tell ["Scoring population"]
+        scores <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
+        tell $ [show scores]
+        tell ["Replicating based on score"]
+        replicated <- return $ gradePop scores
+        tell $ [show replicated]
+        tell ["Mutating replicated children"]
+        mutated <- mapM (\cpu ->
+                             do
+                               mutatedGenome <- lift $ mutate (childGenome cpu) mutateprob
+                               return $ cpu {childGenome = mutatedGenome}
+                        ) replicated
+        tell $ [show mutated]
+        
         return executed
 
+runProg :: Int -> Int -> Int -> [Instruction] -> Double -> [Int] -> IO ()
+runProg maxexec gensize maxgen genome mutateprob expected =
+    let
+        loopTest :: (Int, [CPU]) -> Bool
+        loopTest (gennum, _) =
+            if gennum >= maxgen
+            then True -- we have reached/exceeded the max number of generations
+            else False -- keep going
 
-runProg :: IO ()
-runProg =
-    do
-      (v,o) <- evalRandIO $ runWriterT $ runGeneration 100000 0 $ createInitGen 50 (V.toList genomeReplicate) [1,2,4,8,16,32,64]
-      mapM_ putStrLn o
-      mapM_ putStrLn $ map (\cpu -> show $ iPointer cpu) v
-    
-               
+        initialGen = createInitGen gensize genome expected
+                         
+        progLoop :: (Int, [CPU]) -> IO (Int,[CPU])
+        progLoop (gennum, prevgen) =
+            do
+              (v,o) <- evalRandIO $ runWriterT $ runGeneration maxexec gennum mutateprob prevgen 
+              mapM_ putStrLn o
+              mapM_ putStrLn $ map (\cpu -> show $ iPointer cpu) v
+              return (gennum+1,v)
+    in
+      do
+        (gennum, final) <- iterateUntilM loopTest progLoop (0,initialGen)
+        putStrLn $ show gennum
+
+preset = runProg 10000 20 2 (V.toList genomeReplicate) 0.01 [9,5,5,4,8,4]                 
+      
+
+
+            
+mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
+mutate ins probthres =
+    let minI = minBound :: Instruction
+        maxI = maxBound :: Instruction
+        getrandins :: RandomGen m => Rand m Instruction
+        getrandins =
+            do 
+              (rint :: Int) <- getRandomR(fromEnum minI, fromEnum maxI)
+              return $ toEnum rint
+                     
+        mut :: RandomGen m => Double -> Instruction -> Rand m [Instruction]
+        mut mutthres i =
+            do
+              (mutrand :: Double) <- getRandomR(0.0,1.0)
+              (randmuttype :: Int) <- getRandomR(0,2)
+              rins <- getrandins
+              mutatedIns <- if mutrand > mutthres
+                            then return [i]  -- random value greater than probability threshold for mutation - do nothing
+                            else case randmuttype of
+                                   0 -> return []  -- Delete
+                                   1 -> return [rins] -- Mutate
+                                   2 -> return [i, rins] -- Insert
+              return mutatedIns
+    in
+      do
+        mutated <- mapM (mut probthres) ins
+        return $ concat mutated
+              
+            
+            
 executeCpu :: CPU -> Int -> CPU
 executeCpu cpu countmax 
     | (iCounter cpu) < countmax = executeCpu (execInstruc cpu) countmax
