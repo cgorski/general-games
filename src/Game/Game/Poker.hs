@@ -362,7 +362,7 @@ hasConsecutiveRanks :: Order -> [PlayingCard] -> Bool
 hasConsecutiveRanks order hand =
   let handlst = map (\x -> Just x) $ sortCardsBy order hand
       ff (Just c0) (Just c1) =
-        case (toOrderedValue order RankValueType c0)-(toOrderedValue order RankValueType c1) of
+        case (toOrderedValue order RankValueType c1)-(toOrderedValue order RankValueType c0) of
           1 -> Just c1
           _ -> Nothing
       ff _ _ = Nothing
@@ -635,7 +635,7 @@ mkRoyalFlush hand
           slst :: [PlayingCard] = sortCardsBy AceHighRankOrder hand
           rlst = toValueLst slst
         in
-          if (rlst == [Ace, King, Queen, Jack, Ten])
+          if (rlst == [Ten, Jack, Queen, King, Ace])
           then Just (PokerHand RoyalFlush hand)
           else Nothing
       else Nothing

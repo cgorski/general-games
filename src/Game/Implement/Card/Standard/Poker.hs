@@ -31,19 +31,19 @@ data Order = AceHighRankOrder | AceLowRankOrder | SuitOrder deriving (Eq)
 data ValueType = RankValueType | SuitValueType
 
 instance OrderedCard PlayingCard Order where
-  compareCardBy AceHighRankOrder (PlayingCard Ace _) (PlayingCard _ _) = LT
-  compareCardBy AceHighRankOrder (PlayingCard _ _) (PlayingCard Ace _) = GT
+  compareCardBy AceHighRankOrder (PlayingCard Ace _) (PlayingCard _ _) = GT
+  compareCardBy AceHighRankOrder (PlayingCard _ _) (PlayingCard Ace _) = LT
   compareCardBy AceHighRankOrder (PlayingCard r1 _) (PlayingCard r2 _) =
     if r1 == r2
     then EQ
-    else r2 `compare` r1
+    else r1 `compare` r2
 
-  compareCardBy AceLowRankOrder (PlayingCard Ace _) (PlayingCard _ _) = GT
-  compareCardBy AceLowRankOrder (PlayingCard _ _) (PlayingCard Ace _) = LT
+  compareCardBy AceLowRankOrder (PlayingCard Ace _) (PlayingCard _ _) = LT
+  compareCardBy AceLowRankOrder (PlayingCard _ _) (PlayingCard Ace _) = GT
   compareCardBy AceLowRankOrder (PlayingCard r1 _) (PlayingCard r2 _) =
     if r1 == r2
     then EQ
-    else r2 `compare` r1
+    else r1 `compare` r2
     
   compareCardBy SuitOrder (PlayingCard _ s1) (PlayingCard _ s2) = s1 `compare` s2
 
