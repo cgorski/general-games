@@ -22,7 +22,8 @@ import Game.Implement.Card.Standard
 -- |
 -- 'Order' defines an order to use when sorting a card. 'AceHighRankOrder' sorts under the
 -- assumption that an Ace is a high card, and 'AceLowRankOrder' under the assumption that an
--- Ace is a low card. 'SuitOrder' sorts cards by suit, irrespective of their rank.
+-- Ace is a low card. 'SuitOrder' sorts cards by suit, irrespective of their rank. Rank sorting
+-- is performed in ascending order.
 data Order = AceHighRankOrder | AceLowRankOrder | SuitOrder deriving (Eq)
 
 -- |
