@@ -3,6 +3,7 @@ import Test.Hspec
 import Game.Game.Poker
 import Game.Implement.Card
 import Game.Implement.Card.Standard
+import Game.Implement.Card.Standard.Poker
 
 
 allHandsCount :: Int
@@ -113,6 +114,17 @@ isUnique lst = f lst True where
 shuffledDeck :: RandomGen g => Rand g [PlayingCard]
 shuffledDeck = shuffle $ fullDeck
 
+clubsDefaultSortAceLow :: [PlayingCard]
+clubsDefaultSortAceLow =
+  let clubs = flip PlayingCard Clubs <$> ranks
+  in sortCardsBy AceLowRankOrder $ clubs
+
+clubsDefaultSortAceHigh :: [PlayingCard]
+clubsDefaultSortAceHigh =
+  let clubs = flip PlayingCard Clubs <$> ranks
+  in sortCardsBy AceHighRankOrder $ clubs
+
+
 main :: IO ()
 main =
   do
@@ -202,6 +214,14 @@ main =
           length (fullDeck :: [PlayingCard]) `shouldBe` 52
         it "returns unique cards" $ do
           isUnique (fullDeck :: [PlayingCard]) `shouldBe` True
+
+      describe "Game.Game.Poker.compareCardBy" $ do
+        it "orders low to high by default, check ace low" $ do
+          clubsDefaultSortAceLow `shouldBe` [PlayingCard Ace Clubs, PlayingCard Two Clubs, PlayingCard Three Clubs, PlayingCard Four Clubs, PlayingCard Five Clubs, PlayingCard Six Clubs, PlayingCard Seven Clubs, PlayingCard Eight Clubs, PlayingCard Nine Clubs, PlayingCard Ten Clubs, PlayingCard Jack Clubs, PlayingCard Queen Clubs, PlayingCard King Clubs]
+        it "orders low to high by default, check ace high" $ do
+          clubsDefaultSortAceHigh `shouldBe` [PlayingCard Two Clubs, PlayingCard Three Clubs, PlayingCard Four Clubs, PlayingCard Five Clubs, PlayingCard Six Clubs, PlayingCard Seven Clubs, PlayingCard Eight Clubs, PlayingCard Nine Clubs, PlayingCard Ten Clubs, PlayingCard Jack Clubs, PlayingCard Queen Clubs, PlayingCard King Clubs, PlayingCard Ace Clubs]
+
+          
 
       describe "Game.Game.Poker.isHand" $ do
         it "confirms that an Ace low straight flush exists" $ do
