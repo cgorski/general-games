@@ -7,7 +7,7 @@ license:             MIT
 license-file:        LICENSE
 author:              Christopher A. Gorski
 maintainer:          cgorski@cgorski.org
-copyright:           2017 Christopher A. Gorski
+copyright:           2017-2018 Christopher A. Gorski
 category:            Game, Poker
 build-type:          Simple
 extra-source-files:  README.md
