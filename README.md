@@ -75,7 +75,7 @@ Ace Of Clubs
 [Five of Hearts,Five of Clubs,Five of Spades,Five of Diamonds]
 
 --- Here we create a hand with four-of-a-kind.
->>> mkHand $ PlayingCard Eight Hearts : (PlayingCard Seven <$> [Hearts, Clubs, Spades, Diamonds])
+>>> fromJust $ mkHand $ PlayingCard Eight Hearts : (PlayingCard Seven <$> [Hearts, Clubs, Spades, Diamonds])
 PokerHand FourOfAKind [Eight of Hearts,Seven of Hearts,Seven of Clubs,Seven of Spades,Seven of Diamonds]
 
 --- We can create multiple cards of a suit in a similar manner.
