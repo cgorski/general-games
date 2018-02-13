@@ -62,6 +62,26 @@ Just ([Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts]
 Just ([[Six of Diamonds,Four of Clubs,Two of Spades,Ten of Clubs,Eight of Hearts],[Ace of Hearts,Queen of Spades],[Eight of Diamonds,Nine of Clubs]],[King of Diamonds,Four of Diamonds,Jack of Hearts,King of Spades,Ten of Hearts,Two of Hearts,Ten of Spades,Seven of Hearts,Ten of Diamonds,Five of Clubs,Queen of Diamonds,Three of Hearts,Six of Hearts,Three of Diamonds,Eight of Clubs,Seven of Clubs,Queen of Clubs,Four of Hearts,Jack of Diamonds,Seven of Diamonds,Ace of Clubs,Nine of Spades,Four of Spades,Three of Clubs,Ace of Spades,Jack of Spades,Queen of Hearts,King of Clubs,Two of Clubs,King of Hearts,Ace of Diamonds,Nine of Hearts,Six of Clubs,Jack of Clubs,Seven of Spades,Eight of Spades,Six of Spades,Three of Spades,Five of Spades,Two of Diamonds,Five of Hearts,Five of Diamonds,Nine of Diamonds])
 ```
 
+Card creation:
+
+```haskell
+--- Cards can be created with a simple constructor.
+>>> card = PlayingCard Ace Clubs
+>>> card
+Ace Of Clubs
+
+--- Use fmap to create multiple cards of a rank
+>>> PlayingCard Five <$> [Hearts, Clubs, Spades, Diamonds]
+PlayingCard Five <$> [Hearts, Clubs, Spades, Diamonds]
+
+--- Here we create a hand with four-of-a-kind.
+>>> mkHand $ PlayingCard Eight Hearts : (PlayingCard Seven <$> [Hearts, Clubs, Spades, Diamonds])
+PokerHand FourOfAKind [Eight of Hearts,Seven of Hearts,Seven of Clubs,Seven of Spades,Seven of Diamonds]
+
+--- We can create multiple cards of a suit in a similar manner.
+>>> flip PlayingCard Diamonds <$> [Ace, Two, Three, Four]
+[Ace of Diamonds,Two of Diamonds,Three of Diamonds,Four of Diamonds]
+```
 
 ## Contribute
 
