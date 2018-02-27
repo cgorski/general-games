@@ -400,6 +400,7 @@ instance Ord PokerHand where
   compare (PokerHand (StraightFlush _) _) (PokerHand _ _) = GT
   compare (PokerHand _ _) (PokerHand (StraightFlush _) _) = GT
 
+  compare _ _ = EQ
 --comparePokerHand (PokerHand FourOfAKind ranksl) (PokerHand FourOfAKind ranksr) = ranksl `compare` ranksr
 --comparePokerHand (PokerHand FourOfAKind _) (PokerHand 
 
