@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiWayIf #-}
 -- |
 -- Module      : Game.Game.Poker
--- Copyright   : (c) 2017 Christopher A. Gorski
+-- Copyright   : (c) 2017-2018 Christopher A. Gorski
 -- License     : MIT
 -- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
 --
@@ -74,6 +74,12 @@ module Game.Game.Poker
   , isStraightFlush
   , isRoyalFlush
 
+  -- * Hand Comparison
+  , groupByRank
+  , groupsOfN
+  , suitGroupsOfN
+  , decomp
+  
   )
 
    
@@ -85,9 +91,8 @@ import Control.Monad.Random
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
-import Data.List (nub,find) 
+import Data.List (nub,find,groupBy, maximumBy, elem, sort) 
 import Data.Maybe (isJust, fromJust, catMaybes)
-
 
 
 -- |
@@ -101,6 +106,7 @@ data AceRank = AceHigh | AceLow deriving (Eq, Show, Ord, Enum, Bounded)
 -- Return the cards in a 'PokerHand'
 cardsOfPokerHand :: PokerHand -> [PlayingCard]
 cardsOfPokerHand (PokerHand _ h) = h
+
 
 -- |
 -- Return the 'PokerHandType' of a 'PokerHand'
@@ -142,6 +148,7 @@ data PokerHandType =
 -- >>> cardsOfPokerHand pokerhand
 -- [Five of Diamonds,Jack of Spades,Queen of Spades,Queen of Diamonds,Jack of Hearts]
 data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
+data DecompHand = DecompHand PokerHandType [Rank] deriving (Eq,Show)
 
 -- |
 -- Return a random hand that is not any other hand, also known as "High Card"
@@ -321,6 +328,80 @@ randomRoyalFlush =
       cardset <- zipWithM mergelst mkRanklst suitlst
       shuffledHand <- shuffle cardset
       return $ PokerHand RoyalFlush shuffledHand
+
+
+-- |
+-- Given a list of cards, group the cards by rank.
+groupByRank :: [PlayingCard] -> [[PlayingCard]]
+groupByRank cards =
+  groupBy (\a b -> (toRank a) == (toRank b)) (sort cards)
+
+-- |
+-- Given a list of groups of cards, return all groups of a suit size n.
+groupsOfN :: Int -> [[PlayingCard]] -> [[PlayingCard]]
+groupsOfN n cardGroups =
+  filter (\l -> n == length l) cardGroups
+
+-- |
+-- Given a suit group size and a list of cards, return the ranks of the suit groups size n
+suitGroupsOfN :: Int -> [PlayingCard] -> [Rank]
+suitGroupsOfN n cards =
+  map (\cardgroup -> toRank $ cardgroup !! 0) $ groupsOfN n $ groupByRank cards
+
+-- |
+-- Given a PokerHand, decompose the hand into a list of the minimum rank values
+-- required for a comparison. The list is compared left to right for the purposes
+-- determining the better hand.
+
+decomp :: PokerHand -> DecompHand
+decomp (PokerHand RoyalFlush _ ) = DecompHand RoyalFlush [Ace]
+decomp (PokerHand (StraightFlush _) cards) =
+  let rlst = toRankLst cards in
+    if elem Ace rlst && elem Five rlst
+    then DecompHand (StraightFlush AceLow) [Five]
+    else DecompHand (StraightFlush AceHigh) [toRank $ maximumBy (compareCardBy AceHighRankOrder) cards]
+decomp (PokerHand FourOfAKind cards) =
+  let fours = suitGroupsOfN 4 cards !! 0
+      kicker = suitGroupsOfN 1 cards !! 0 in
+    DecompHand FourOfAKind [fours, kicker]
+decomp (PokerHand FullHouse cards) =
+  let threes = suitGroupsOfN 3 cards !! 0
+      twos = suitGroupsOfN 2 cards !! 0 in
+    DecompHand FullHouse [threes, twos]
+decomp (PokerHand Flush cards) =
+  DecompHand Flush $ [toRankLst cards !! 0]
+decomp (PokerHand (Straight _) cards) =
+  let rlst = toRankLst cards in
+    if elem Ace rlst && elem Five rlst
+    then DecompHand (Straight AceLow) [Five]
+    else DecompHand (Straight AceHigh) [toRank $ maximumBy (compareCardBy AceHighRankOrder) cards]
+decomp (PokerHand ThreeOfAKind cards) =
+  let threes = suitGroupsOfN 3 cards !! 0
+      remaining = suitGroupsOfN 1 cards in
+    DecompHand ThreeOfAKind (threes:(reverse (sort remaining)))
+decomp (PokerHand TwoPair cards) =
+  let pairs = reverse $ sort $ suitGroupsOfN 2 cards
+      kicker = suitGroupsOfN 1 cards in
+    DecompHand TwoPair $ pairs ++ kicker
+decomp (PokerHand Pair cards) =
+  let pair = suitGroupsOfN 2 cards
+      kickers = reverse $ sort $ suitGroupsOfN 1 cards in
+    DecompHand Pair $ pair ++ kickers
+decomp (PokerHand HighCard cards) =
+  let kickers = suitGroupsOfN 1 cards in
+    DecompHand HighCard $ reverse $ sort kickers
+    
+instance Ord PokerHand where
+  compare (PokerHand RoyalFlush _) (PokerHand RoyalFlush _) = EQ
+  compare (PokerHand RoyalFlush _) (PokerHand _ _) = GT
+  compare (PokerHand _ _) (PokerHand RoyalFlush _) = LT
+
+  compare (PokerHand (StraightFlush _) ranksl) (PokerHand (StraightFlush _) ranksr) = ranksl `compare` ranksr
+  compare (PokerHand (StraightFlush _) _) (PokerHand _ _) = GT
+  compare (PokerHand _ _) (PokerHand (StraightFlush _) _) = GT
+
+--comparePokerHand (PokerHand FourOfAKind ranksl) (PokerHand FourOfAKind ranksr) = ranksl `compare` ranksr
+--comparePokerHand (PokerHand FourOfAKind _) (PokerHand 
 
 -- |
 -- Given a list of cards, find the best hand in the set. If the number
