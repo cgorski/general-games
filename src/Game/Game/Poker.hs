@@ -11,7 +11,8 @@
 module Game.Game.Poker
   (
     -- * Poker Hand Types
-    PokerHand
+    DecompHand
+  , PokerHand
   , PokerHandType(..)
   , AceRank (..)
 
@@ -147,8 +148,8 @@ data PokerHandType =
 --
 -- >>> cardsOfPokerHand pokerhand
 -- [Five of Diamonds,Jack of Spades,Queen of Spades,Queen of Diamonds,Jack of Hearts]
-data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
-data DecompHand = DecompHand PokerHandType [Rank] deriving (Eq,Show)
+data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Show)
+data DecompHand = DecompHand PokerHandType [Rank] deriving (Show)
 
 -- |
 -- Return a random hand that is not any other hand, also known as "High Card"
@@ -391,18 +392,64 @@ decomp (PokerHand HighCard cards) =
   let kickers = suitGroupsOfN 1 cards in
     DecompHand HighCard $ reverse $ sort kickers
     
+instance Ord DecompHand where
+  compare (DecompHand RoyalFlush _) (DecompHand RoyalFlush _) = EQ
+  compare (DecompHand RoyalFlush _) _ = GT
+  compare _ (DecompHand RoyalFlush _) = LT
+
+  compare (DecompHand (StraightFlush _) rleft) (DecompHand (StraightFlush _) rright) =
+    rleft `compare` rright
+  compare (DecompHand (StraightFlush _) _) _ = GT
+  compare _ (DecompHand (StraightFlush _) _) = LT
+
+  compare (DecompHand FourOfAKind rleft) (DecompHand FourOfAKind rright) = rleft `compare` rright
+  compare (DecompHand FourOfAKind _) _ = GT
+  compare _ (DecompHand FourOfAKind _) = LT
+
+  compare (DecompHand FullHouse rleft) (DecompHand FullHouse rright) = rleft `compare` rright
+  compare (DecompHand FullHouse _) _ = GT
+  compare _ (DecompHand FullHouse _) = LT
+
+  compare (DecompHand Flush rleft) (DecompHand Flush rright) = rleft `compare` rright
+  compare (DecompHand Flush _) _ = GT
+  compare _ (DecompHand Flush _) = LT
+
+  compare (DecompHand (Straight _) rleft) (DecompHand (Straight _) rright) = rleft `compare` rright
+  compare (DecompHand (Straight _) _) _ = GT
+  compare _ (DecompHand (Straight _) _) = LT
+
+  compare (DecompHand ThreeOfAKind rleft) (DecompHand ThreeOfAKind rright) = rleft `compare` rright
+  compare (DecompHand ThreeOfAKind _) _ = GT
+  compare _ (DecompHand ThreeOfAKind _) = LT
+
+  compare (DecompHand TwoPair rleft) (DecompHand TwoPair rright) = rleft `compare` rright
+  compare (DecompHand TwoPair _) _ = GT
+  compare _ (DecompHand TwoPair _) = LT
+
+  compare (DecompHand Pair rleft) (DecompHand Pair rright) = rleft `compare` rright
+  compare (DecompHand Pair _) _ = GT
+  compare _ (DecompHand Pair _) = LT
+
+  compare (DecompHand HighCard rleft) (DecompHand HighCard rright) = rleft `compare` rright
+
+
+
+
+instance Eq DecompHand where
+  left == right =
+    if left `compare` right == EQ
+    then True
+    else False
+
 instance Ord PokerHand where
-  compare (PokerHand RoyalFlush _) (PokerHand RoyalFlush _) = EQ
-  compare (PokerHand RoyalFlush _) (PokerHand _ _) = GT
-  compare (PokerHand _ _) (PokerHand RoyalFlush _) = LT
+  compare lhand rhand = (decomp lhand) `compare` (decomp rhand)
 
-  compare (PokerHand (StraightFlush _) ranksl) (PokerHand (StraightFlush _) ranksr) = ranksl `compare` ranksr
-  compare (PokerHand (StraightFlush _) _) (PokerHand _ _) = GT
-  compare (PokerHand _ _) (PokerHand (StraightFlush _) _) = GT
+instance Eq PokerHand where
+  left == right =
+    if left `compare` right == EQ
+    then True
+    else False
 
-  compare _ _ = EQ
---comparePokerHand (PokerHand FourOfAKind ranksl) (PokerHand FourOfAKind ranksr) = ranksl `compare` ranksr
---comparePokerHand (PokerHand FourOfAKind _) (PokerHand 
 
 -- |
 -- Given a list of cards, find the best hand in the set. If the number

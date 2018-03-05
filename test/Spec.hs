@@ -4,7 +4,11 @@ import Game.Game.Poker
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
+import Data.Maybe (fromJust)
 
+-- Copyright   : (c) 2017-2018 Christopher A. Gorski
+-- License     : MIT
+-- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
 
 allHandsCount :: Int
 allHandsCount = length allPossibleHands
@@ -46,6 +50,30 @@ royalFlushNot =
    PlayingCard Eight Hearts,
    PlayingCard Jack Hearts,
    PlayingCard Ten Hearts]
+
+royalFlushHand :: PokerHand
+royalFlushHand =
+  fromJust $ mkHand $ flip PlayingCard Spades <$> [Ace, Queen, King, Jack, Ten]
+
+straightFlushHandSmall :: PokerHand
+straightFlushHandSmall =
+  fromJust $ mkHand $ flip PlayingCard Hearts <$> [Three, Four, Five, Six, Seven]
+
+straightFlushHandLarge :: PokerHand
+straightFlushHandLarge =
+  fromJust $ mkHand $ flip PlayingCard Hearts <$> [Eight, Nine, Ten, Jack, Queen]
+
+fourOfAKindHandSmall :: PokerHand
+fourOfAKindHandSmall = 
+  fromJust $ mkHand $ (PlayingCard Ace Diamonds):(PlayingCard Three <$> [Hearts, Diamonds, Spades, Clubs])
+
+fourOfAKindHandLarge :: PokerHand
+fourOfAKindHandLarge = 
+  fromJust $ mkHand $ (PlayingCard Ace Diamonds):(PlayingCard Ace <$> [Hearts, Diamonds, Spades, Clubs])
+
+fullHouseHand :: PokerHand
+fullHouseHand =
+  fromJust $ mkHand $ (PlayingCard Two <$> [Hearts, Diamonds])++(PlayingCard Five <$> [Clubs, Diamonds, Spades])
 
 drawDeck :: [PlayingCard]
 drawDeck =
@@ -200,6 +228,33 @@ main =
           return (h, isRoyalFlush $ cardsOfPokerHand h)
       in evalRandIO $ replicateM 100000 r
 
+    randCompRoyalFlushRoyalFlush <-
+      evalRandIO $ do
+        l <- randomRoyalFlush
+        r <- randomRoyalFlush
+        return $ l `compare` r
+
+    randCompRoyalFlushStraightFlush <-
+      return $ (randRoyalFlushes !! 0) `compare` (randStraightFlushes !! 0)
+
+    randCompRoyalFlushStraightFlushFlip <-
+      return $ (randStraightFlushes !! 0) `compare` (randRoyalFlushes !! 0)
+
+    randCompRoyalFlushFourOfAKind <-
+      return $ (randRoyalFlushes !! 0) `compare` (randFourOfAKinds !! 0)
+
+    randCompRoyalFlushFourOfAKindFlip <-
+      return $ (randFourOfAKinds !! 0) `compare` (randRoyalFlushes !! 0)
+
+    randCompRoyalFlushFullHouse <-
+      return $ (randRoyalFlushes !! 0) `compare` (randFullHouses !! 0)
+
+    randCompRoyalFlushFullHouseFlip <-
+      return $ (randFullHouses !! 0) `compare` (randRoyalFlushes !! 0)
+
+    
+
+      
     hspec $ do
       describe "Game.Implement.Card.draw (PlayingCard)" $ do
         it "returns drawn hands from a deck, plus the remaining deck" $ do
@@ -236,6 +291,21 @@ main =
           (isRoyalFlush royalFlush) `shouldBe` True
         it "confirms that [AH, QH, 8H, JH, TH] is not a Royal Flush" $ do
           (isRoyalFlush royalFlushNot) `shouldBe` False
+
+      describe "Game.Game.Poker.compare" $ do
+        it "returns equal for all RoyalFlush comparisons" $ do
+          randCompRoyalFlushRoyalFlush `shouldBe` EQ
+        it "returns GT for RoyalFlush `compare` StraightFlush" $ do
+          randCompRoyalFlushStraightFlush `shouldBe` GT
+        it "returns LT for StraightFlush `compare` RoyalFlush" $ do
+          randCompRoyalFlushStraightFlushFlip `shouldBe` LT
+        it "returns GT for RoyalFlush `compare` FourOfAKind" $ do
+          randCompRoyalFlushFourOfAKind `shouldBe` GT
+        it "returns LT for FourOfAKind `compare` RoyalFlush" $ do
+          randCompRoyalFlushFourOfAKindFlip `shouldBe` LT
+        it "returns GT for RoyalFlush `compare` FullHouse" $ do
+          randCompRoyalFlushFullHouse `shouldBe` GT
+
 
       describe "Game.Game.Poker.randomHighCard" $ do
         it "returns a HighCard of typeOfPokerHand HighCard" $ do
