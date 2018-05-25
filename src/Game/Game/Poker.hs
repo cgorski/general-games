@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiWayIf #-}
 -- |
 -- Module      : Game.Game.Poker
--- Copyright   : (c) 2017 Christopher A. Gorski
+-- Copyright   : (c) 2017-2018 Christopher A. Gorski
 -- License     : MIT
 -- Maintainer  : Christopher A. Gorski <cgorski@cgorski.org>
 --
@@ -11,7 +11,8 @@
 module Game.Game.Poker
   (
     -- * Poker Hand Types
-    PokerHand
+    DecompHand
+  , PokerHand
   , PokerHandType(..)
   , AceRank (..)
 
@@ -74,6 +75,12 @@ module Game.Game.Poker
   , isStraightFlush
   , isRoyalFlush
 
+  -- * Hand Comparison
+  , groupByRank
+  , groupsOfN
+  , suitGroupsOfN
+  , decomp
+  
   )
 
    
@@ -85,9 +92,8 @@ import Control.Monad.Random
 import Game.Implement.Card
 import Game.Implement.Card.Standard
 import Game.Implement.Card.Standard.Poker
-import Data.List (nub,find) 
+import Data.List (nub,find,groupBy, maximumBy, elem, sort) 
 import Data.Maybe (isJust, fromJust, catMaybes)
-
 
 
 -- |
@@ -101,6 +107,7 @@ data AceRank = AceHigh | AceLow deriving (Eq, Show, Ord, Enum, Bounded)
 -- Return the cards in a 'PokerHand'
 cardsOfPokerHand :: PokerHand -> [PlayingCard]
 cardsOfPokerHand (PokerHand _ h) = h
+
 
 -- |
 -- Return the 'PokerHandType' of a 'PokerHand'
@@ -141,7 +148,8 @@ data PokerHandType =
 --
 -- >>> cardsOfPokerHand pokerhand
 -- [Five of Diamonds,Jack of Spades,Queen of Spades,Queen of Diamonds,Jack of Hearts]
-data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Eq,Show)
+data PokerHand = PokerHand PokerHandType [PlayingCard] deriving(Show)
+data DecompHand = DecompHand PokerHandType [Rank] deriving (Show)
 
 -- |
 -- Return a random hand that is not any other hand, also known as "High Card"
@@ -321,6 +329,127 @@ randomRoyalFlush =
       cardset <- zipWithM mergelst mkRanklst suitlst
       shuffledHand <- shuffle cardset
       return $ PokerHand RoyalFlush shuffledHand
+
+
+-- |
+-- Given a list of cards, group the cards by rank.
+groupByRank :: [PlayingCard] -> [[PlayingCard]]
+groupByRank cards =
+  groupBy (\a b -> (toRank a) == (toRank b)) (sort cards)
+
+-- |
+-- Given a list of groups of cards, return all groups of a suit size n.
+groupsOfN :: Int -> [[PlayingCard]] -> [[PlayingCard]]
+groupsOfN n cardGroups =
+  filter (\l -> n == length l) cardGroups
+
+-- |
+-- Given a suit group size and a list of cards, return the ranks of the suit groups size n
+suitGroupsOfN :: Int -> [PlayingCard] -> [Rank]
+suitGroupsOfN n cards =
+  map (\cardgroup -> toRank $ cardgroup !! 0) $ groupsOfN n $ groupByRank cards
+
+-- |
+-- Given a PokerHand, decompose the hand into a list of the minimum rank values
+-- required for a comparison. The list is compared left to right for the purposes
+-- determining the better hand.
+
+decomp :: PokerHand -> DecompHand
+decomp (PokerHand RoyalFlush _ ) = DecompHand RoyalFlush [Ace]
+decomp (PokerHand (StraightFlush _) cards) =
+  let rlst = toRankLst cards in
+    if elem Ace rlst && elem Five rlst
+    then DecompHand (StraightFlush AceLow) [Five]
+    else DecompHand (StraightFlush AceHigh) [toRank $ maximumBy (compareCardBy AceHighRankOrder) cards]
+decomp (PokerHand FourOfAKind cards) =
+  let fours = suitGroupsOfN 4 cards !! 0
+      kicker = suitGroupsOfN 1 cards !! 0 in
+    DecompHand FourOfAKind [fours, kicker]
+decomp (PokerHand FullHouse cards) =
+  let threes = suitGroupsOfN 3 cards !! 0
+      twos = suitGroupsOfN 2 cards !! 0 in
+    DecompHand FullHouse [threes, twos]
+decomp (PokerHand Flush cards) =
+  DecompHand Flush $ [toRankLst cards !! 0]
+decomp (PokerHand (Straight _) cards) =
+  let rlst = toRankLst cards in
+    if elem Ace rlst && elem Five rlst
+    then DecompHand (Straight AceLow) [Five]
+    else DecompHand (Straight AceHigh) [toRank $ maximumBy (compareCardBy AceHighRankOrder) cards]
+decomp (PokerHand ThreeOfAKind cards) =
+  let threes = suitGroupsOfN 3 cards !! 0
+      remaining = suitGroupsOfN 1 cards in
+    DecompHand ThreeOfAKind (threes:(reverse (sort remaining)))
+decomp (PokerHand TwoPair cards) =
+  let pairs = reverse $ sort $ suitGroupsOfN 2 cards
+      kicker = suitGroupsOfN 1 cards in
+    DecompHand TwoPair $ pairs ++ kicker
+decomp (PokerHand Pair cards) =
+  let pair = suitGroupsOfN 2 cards
+      kickers = reverse $ sort $ suitGroupsOfN 1 cards in
+    DecompHand Pair $ pair ++ kickers
+decomp (PokerHand HighCard cards) =
+  let kickers = suitGroupsOfN 1 cards in
+    DecompHand HighCard $ reverse $ sort kickers
+    
+instance Ord DecompHand where
+  compare (DecompHand RoyalFlush _) (DecompHand RoyalFlush _) = EQ
+  compare (DecompHand RoyalFlush _) _ = GT
+  compare _ (DecompHand RoyalFlush _) = LT
+
+  compare (DecompHand (StraightFlush _) rleft) (DecompHand (StraightFlush _) rright) =
+    rleft `compare` rright
+  compare (DecompHand (StraightFlush _) _) _ = GT
+  compare _ (DecompHand (StraightFlush _) _) = LT
+
+  compare (DecompHand FourOfAKind rleft) (DecompHand FourOfAKind rright) = rleft `compare` rright
+  compare (DecompHand FourOfAKind _) _ = GT
+  compare _ (DecompHand FourOfAKind _) = LT
+
+  compare (DecompHand FullHouse rleft) (DecompHand FullHouse rright) = rleft `compare` rright
+  compare (DecompHand FullHouse _) _ = GT
+  compare _ (DecompHand FullHouse _) = LT
+
+  compare (DecompHand Flush rleft) (DecompHand Flush rright) = rleft `compare` rright
+  compare (DecompHand Flush _) _ = GT
+  compare _ (DecompHand Flush _) = LT
+
+  compare (DecompHand (Straight _) rleft) (DecompHand (Straight _) rright) = rleft `compare` rright
+  compare (DecompHand (Straight _) _) _ = GT
+  compare _ (DecompHand (Straight _) _) = LT
+
+  compare (DecompHand ThreeOfAKind rleft) (DecompHand ThreeOfAKind rright) = rleft `compare` rright
+  compare (DecompHand ThreeOfAKind _) _ = GT
+  compare _ (DecompHand ThreeOfAKind _) = LT
+
+  compare (DecompHand TwoPair rleft) (DecompHand TwoPair rright) = rleft `compare` rright
+  compare (DecompHand TwoPair _) _ = GT
+  compare _ (DecompHand TwoPair _) = LT
+
+  compare (DecompHand Pair rleft) (DecompHand Pair rright) = rleft `compare` rright
+  compare (DecompHand Pair _) _ = GT
+  compare _ (DecompHand Pair _) = LT
+
+  compare (DecompHand HighCard rleft) (DecompHand HighCard rright) = rleft `compare` rright
+
+
+
+
+instance Eq DecompHand where
+  left == right =
+    if left `compare` right == EQ
+    then True
+    else False
+
+instance Ord PokerHand where
+  compare lhand rhand = (decomp lhand) `compare` (decomp rhand)
+
+instance Eq PokerHand where
+  left == right =
+    if left `compare` right == EQ
+    then True
+    else False
+
 
 -- |
 -- Given a list of cards, find the best hand in the set. If the number
