@@ -285,8 +285,7 @@ runGeneration maxcount gennum mutateprob gencpus =
         newParents <- mapM (\(cpu,score) ->
                                 do
                                   (newMate,_) <- lift $ chooseByScore1 mutated 
---                                  return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)
-                                  return $ cpuGenome [] (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)                                         
+                                  return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)
                       ) mutated
         tell $ [show newParents]
         return newParents
@@ -314,7 +313,7 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final) <- iterateUntilM loopTest progLoop (0,initialGen)
         putStrLn $ show gennum
 
-preset = runProg 10000 2 10000 (V.toList genomeReplicate) 0.01 [9,5,5,4,8,4]                 
+preset = runProg 10000 200 10000 (V.toList genomeReplicate) 0.0001 [9,5,5,4,8,4]                 
       
 
 
