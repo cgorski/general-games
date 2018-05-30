@@ -125,8 +125,8 @@ scoreGeneric scoreFunc outputs =
     normalizedRawScores =
         if fitnessSum == 0
         then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/20) --minimum score
-                                        then 1/100
+        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/50) --minimum score
+                                        then 1/50
                                         else score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
@@ -204,7 +204,12 @@ cpuGenomeV :: V.Vector Instruction -> [Int] -> String -> CPU
 cpuGenomeV g i cid = cpuGenome (V.toList g) (V.toList g) i cid
 
 scoreCalc :: Int -> Int -> Double
-scoreCalc expected given = fromIntegral ((expected-given)^(2 :: Int))
+scoreCalc expected given = fromIntegral (
+                                         let numcalc = (((expected-given)+1)^4)
+                                         in
+                                           if numcalc  > (maxBound :: Int)
+                                           then (maxBound :: Int)
+                                           else numcalc)
 
 
         
@@ -288,7 +293,7 @@ runGeneration maxcount gennum mutateprob gencpus =
         tell ["\n"]
         executed <- mapM executec gencpus
         (scores :: [(CPU, Rational)]) <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
-        tell $ [show (drop 1997 scores)]
+        tell $ [show (drop ((length scores)-3) scores)]
         tell $ ["\n"]
         newReplicated <- lift $ scoreAndChoose scoreCpu (length executed) executed
         tell $ ["\n\n\n\n\n"]
@@ -329,7 +334,7 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final) <- iterateUntilM loopTest progLoop (0,initialGen)
         putStrLn $ show gennum
 
-preset = runProg 1000 100 100000 (V.toList genomeReplicate) 0.0001 [1,2,4,8,16,32,64,128]                 
+preset = runProg 2000 1000 10000000 (V.toList genomeReplicate) 0.001 [1,2,4,8,16,32,64,128]                 
       
 
 
