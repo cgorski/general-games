@@ -357,7 +357,7 @@ incrCpu cpu =
                     Just newloc -> newloc
                     Nothing -> newPointer
     in
-      cpu { iPointer = jmpInfo,
+      cpu { iPointer = abs jmpInfo,
             executed = cpu:(executed cpu),
             iCounter = (iCounter cpu) + 1,
             jmpSignal = Nothing}
