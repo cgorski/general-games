@@ -1,12 +1,12 @@
 module Main where
 
-import Game.Implement.Card.Standard
+import Game.Evolve.LinearCreature
 
 -- --import Game.Game.Poker
 
 main :: IO ()
 main = do
-    putStrLn "foo"
+  preset
 --  putStrLn (show $ ValuePair 1 'w')
 
 --   let r = Ace
