@@ -109,9 +109,9 @@ data CPU = CPU {
 instance Show CPU where
     show cpu = "cpuid: " ++ fromMaybe "[No ID Provided" (cpuid cpu)
                ++ " ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
-               ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
+               ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) -- ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
                ++ " input: " ++ show (input cpu) ++ " output: " ++ show (output cpu) ++ "\n"
-            --   ++ " genome: " ++ show (genome cpu) ++ "\n"
+               ++ " genome: " ++ show (genome cpu) ++ " childGenome: " ++ show (childGenome cpu) ++ "\n"
 
 -- new funcs
 -- func must return non-negative number
@@ -162,6 +162,12 @@ chooseByScore numToChoose scoredPairs =
     in
       do
         mapM choosePair [1..numToChoose]
+
+chooseByScore1 :: RandomGen m => [(a, Double)] -> Rand m (a, Double)
+chooseByScore1 scoredPairs =
+    do
+      chosen <- chooseByScore 1 scoredPairs
+      return $ chosen !! 0
         
 
 scoreAndChoose :: RandomGen m => (a -> Rational) -> Int -> [a] -> Rand m [(a, Double)]
@@ -177,10 +183,10 @@ scoreAndChoose scoreFunc numToChoose outputs =
 --cpuReplicate :: [Int] -> String -> CPU
 --cpuReplicate i cid = cpuGenome (V.toList genomeReplicate) i cid
 
-cpuGenome :: [Instruction] -> [Int] -> String -> CPU
-cpuGenome g i cid = newCpu {cpuid = Just cid,
+cpuGenome :: [Instruction] -> [Instruction] -> [Int] -> String -> CPU
+cpuGenome g mg i cid = newCpu {cpuid = Just cid,
                             genome = V.fromList g,
-                            mateGenome = V.fromList g,
+                            mateGenome = V.fromList mg,
                             input = i
                            }
 leadz4 :: Int -> String
@@ -190,7 +196,7 @@ gcid :: Int -> Int -> String
 gcid g c = (leadz4 g) ++ "--" ++ (leadz4 c)
                     
 cpuGenomeV :: V.Vector Instruction -> [Int] -> String -> CPU
-cpuGenomeV g i cid = cpuGenome (V.toList g) i cid
+cpuGenomeV g i cid = cpuGenome (V.toList g) (V.toList g) i cid
 
 scoreCalc :: Int -> Int -> Double
 scoreCalc expected given = sqrt $ fromIntegral ((expected-given)^(2 :: Int))
@@ -241,7 +247,7 @@ gradePop scores =
     
 createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
 createInitGen total g i =
-    [cpuGenome g i (gcid 0 n) | n <- [0..total-1]]
+    [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
 
                
 runGeneration :: RandomGen m => Int -> Int -> Double -> [CPU] -> WriterT [String] (Rand m) [CPU]
@@ -264,24 +270,25 @@ runGeneration maxcount gennum mutateprob gencpus =
 
     in
       do
-        tell ["Running generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount)]
+        tell ["\n\n\n========================\nRunning generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount)]
+        tell ["\n"]
         executed <- mapM executec gencpus
-        tell ["Scoring population"]
         (scores :: [(CPU, Rational)]) <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
         tell $ [show scores]
-        tell ["Replicating based on score"]
+        tell $ ["\n"]
         newReplicated <- lift $ scoreAndChoose scoreCpu (length executed) executed
-        tell $ [show newReplicated]
-        replicated <- return $ map (\(cpu,_) -> cpu) newReplicated
-        tell ["Mutating replicated children"]
-        mutated <- mapM (\cpu ->
+        mutated <- mapM (\(cpu,score) ->
                              do
                                mutatedGenome <- lift $ mutate (childGenome cpu) mutateprob
-                               return $ cpu {childGenome = mutatedGenome}
-                        ) replicated
-    --    tell $ [show mutated]
-        tell ["Replace parents with children"]
-        newParents <- return $ map (\cpu -> cpuGenome (reverse $ childGenome cpu) (input cpu) (fromJust $ cpuid cpu)) mutated
+                               return $ (cpu {childGenome = mutatedGenome}, score)
+                        ) newReplicated
+        newParents <- mapM (\(cpu,score) ->
+                                do
+                                  (newMate,_) <- lift $ chooseByScore1 mutated 
+--                                  return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)
+                                  return $ cpuGenome [] (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)                                         
+                      ) mutated
+        tell $ [show newParents]
         return newParents
 
 runProg :: Int -> Int -> Int -> [Instruction] -> Double -> [Int] -> IO ()
@@ -307,7 +314,7 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final) <- iterateUntilM loopTest progLoop (0,initialGen)
         putStrLn $ show gennum
 
-preset = runProg 10000 200 10000 (V.toList genomeReplicate) 0.001 [9,5,5,4,8,4]                 
+preset = runProg 10000 2 10000 (V.toList genomeReplicate) 0.01 [9,5,5,4,8,4]                 
       
 
 
@@ -337,14 +344,20 @@ mutate ins probthres =
               return mutatedIns
     in
       do
-        mutated <- mapM (mut probthres) ins
+        mutated <-
+            case ins of
+              [] -> return [[]]
+              ns -> mapM (mut probthres) ns
         return $ concat mutated
               
             
             
 executeCpu :: CPU -> Int -> CPU
-executeCpu cpu countmax 
-    | (iCounter cpu) < countmax = executeCpu (execInstruc cpu) countmax
+executeCpu cpu countmax
+    | (iCounter cpu) < countmax =
+        case V.length (genome cpu) of
+          0 -> cpu {iCounter = countmax}
+          n -> executeCpu (execInstruc cpu) countmax
     | otherwise = cpu
 
 
