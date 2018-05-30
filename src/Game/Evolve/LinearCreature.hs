@@ -25,6 +25,11 @@ module Game.Evolve.LinearCreature
   ,runProg
   ,createInitGen
   ,preset
+  ,scoreGeneric
+  ,sfunc1
+  ,chooseByScore
+  ,scoreAndChoose
+
   )
   where
 
@@ -35,7 +40,7 @@ import Control.Monad.LoopWhile (loop,while)
 import Control.Monad.Loops (iterateUntilM)
 import Control.Monad (when)
 import System.Random.Shuffle (shuffleM)
-import Data.List (splitAt, nub, maximumBy, minimumBy, sortBy, foldl1', tails)
+import Data.List (findIndex, splitAt, nub, maximumBy, minimumBy, sortBy, foldl1', tails)
 import qualified Data.Vector as V
 import qualified Data.Map as M
 import Data.Int (Int64)
@@ -105,7 +110,58 @@ instance Show CPU where
                ++ " ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
                ++ " input: " ++ show (input cpu) ++ " output: " ++ show (output cpu) ++ "\n"
-           
+
+-- new funcs
+-- func must return non-negative number
+scoreGeneric :: (a -> Integer) -> [a] -> [(a, Double)]
+scoreGeneric scoreFunc outputs =
+  let
+    rawScores = map (\out -> (out, scoreFunc out)) outputs
+    minScore = minimum $ map (\(_,score) -> score) rawScores
+    maxScore = maximum $ map (\(_,score) -> score) rawScores
+    adjustedRawScores = map (\(out,score) -> (out,score-minScore)) rawScores
+    adjustedMaxScore = maxScore - minScore
+    fitnessSum = sum $ map (\(_,score) -> score) adjustedRawScores
+    normalizedRawScores = map (\(out,score) -> (out,(((fromIntegral score)::Rational)/fromIntegral fitnessSum))) adjustedRawScores
+    sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
+    accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
+  in
+    reverse $ map (\(out,normalizedScore) -> (out,fromRational normalizedScore)) accumulated
+
+  
+
+sfunc1 :: Int -> Integer
+sfunc1 num = abs (10-(toInteger num))
+
+-- Take sorted list descending accumulated scores
+chooseByScore :: RandomGen m => Int -> [(a, Double)] -> Rand m [(a, Double)]
+chooseByScore numToChoose scoredPairs =
+    let choosePair i =
+            do
+              (prob :: Double) <- getRandomR(0.0,1.0)
+              pairIndex <-
+                  case findIndex (\(_,score) -> prob > score) scoredPairs of
+                    Just index ->
+                      case index of
+                        0 -> return index
+                        n -> return $ n - 1
+                    Nothing -> return $ length scoredPairs - 1
+              return $ scoredPairs !! pairIndex
+    in
+      do
+        mapM choosePair [1..numToChoose]
+        
+
+scoreAndChoose :: RandomGen m => (a -> Integer) -> Int -> [a] -> Rand m [(a, Double)]
+scoreAndChoose scoreFunc numToChoose outputs = 
+   chooseByScore numToChoose (scoreGeneric scoreFunc outputs)
+
+          
+              
+
+   
+  
+ 
 cpuReplicate :: [Int] -> String -> CPU
 cpuReplicate i cid = cpuGenome (V.toList genomeReplicate) i cid
 
@@ -126,7 +182,9 @@ cpuGenomeV g i cid = cpuGenome (V.toList g) i cid
 
 scoreCalc :: Int -> Int -> Double
 scoreCalc expected given = sqrt $ fromIntegral ((expected-given)^(2 :: Int))
-             
+
+
+        
 score :: [Int] -> [Int] -> Int
 score expected given =
     let expectedlen = length expected
