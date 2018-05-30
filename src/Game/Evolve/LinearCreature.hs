@@ -16,7 +16,7 @@ module Game.Evolve.LinearCreature
   ,executeCpu
   ,newCpu
   ,genomeReplicate
-  ,cpuReplicate
+--  ,cpuReplicate
   ,iReadSelf
   ,cpuGenome
   ,score
@@ -27,6 +27,7 @@ module Game.Evolve.LinearCreature
   ,preset
   ,scoreGeneric
   ,sfunc1
+  ,sfunc2
   ,chooseByScore
   ,scoreAndChoose
 
@@ -45,7 +46,7 @@ import qualified Data.Vector as V
 import qualified Data.Map as M
 import Data.Int (Int64)
 import Text.Printf (printf)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 
 data Instruction =
   Nop | -- do nothing
@@ -110,19 +111,21 @@ instance Show CPU where
                ++ " ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
                ++ " input: " ++ show (input cpu) ++ " output: " ++ show (output cpu) ++ "\n"
+            --   ++ " genome: " ++ show (genome cpu) ++ "\n"
 
 -- new funcs
 -- func must return non-negative number
-scoreGeneric :: (a -> Integer) -> [a] -> [(a, Double)]
+scoreGeneric :: (a -> Rational) -> [a] -> [(a, Double)]
 scoreGeneric scoreFunc outputs =
   let
     rawScores = map (\out -> (out, scoreFunc out)) outputs
     minScore = minimum $ map (\(_,score) -> score) rawScores
-    maxScore = maximum $ map (\(_,score) -> score) rawScores
     adjustedRawScores = map (\(out,score) -> (out,score-minScore)) rawScores
-    adjustedMaxScore = maxScore - minScore
     fitnessSum = sum $ map (\(_,score) -> score) adjustedRawScores
-    normalizedRawScores = map (\(out,score) -> (out,(((fromIntegral score)::Rational)/fromIntegral fitnessSum))) adjustedRawScores
+    normalizedRawScores =
+        if fitnessSum == 0
+        then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
+        else map (\(out,score) -> (out,(score/fitnessSum))) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
   in
@@ -130,8 +133,17 @@ scoreGeneric scoreFunc outputs =
 
   
 
-sfunc1 :: Int -> Integer
-sfunc1 num = abs (10-(toInteger num))
+sfunc1 :: Int -> Rational
+sfunc1 num = fromIntegral $ abs (10-(toInteger num))
+
+sfunc2 :: Int -> Rational
+sfunc2 num =
+    let n = fromIntegral $ abs (10-(toInteger num)) + 1
+    in
+     if n == 0
+     then 1
+     else 1 / n
+
 
 -- Take sorted list descending accumulated scores
 chooseByScore :: RandomGen m => Int -> [(a, Double)] -> Rand m [(a, Double)]
@@ -152,7 +164,7 @@ chooseByScore numToChoose scoredPairs =
         mapM choosePair [1..numToChoose]
         
 
-scoreAndChoose :: RandomGen m => (a -> Integer) -> Int -> [a] -> Rand m [(a, Double)]
+scoreAndChoose :: RandomGen m => (a -> Rational) -> Int -> [a] -> Rand m [(a, Double)]
 scoreAndChoose scoreFunc numToChoose outputs = 
    chooseByScore numToChoose (scoreGeneric scoreFunc outputs)
 
@@ -162,8 +174,8 @@ scoreAndChoose scoreFunc numToChoose outputs =
    
   
  
-cpuReplicate :: [Int] -> String -> CPU
-cpuReplicate i cid = cpuGenome (V.toList genomeReplicate) i cid
+--cpuReplicate :: [Int] -> String -> CPU
+--cpuReplicate i cid = cpuGenome (V.toList genomeReplicate) i cid
 
 cpuGenome :: [Instruction] -> [Int] -> String -> CPU
 cpuGenome g i cid = newCpu {cpuid = Just cid,
@@ -195,8 +207,13 @@ score expected given =
       then maxBound
       else ceiling $ sum $ zipWith scoreCalc expected given
 
-scoreCpu :: CPU -> Int
-scoreCpu cpu = score (input cpu) (reverse $ output cpu)
+scoreCpu :: CPU -> Rational
+scoreCpu cpu =
+  let n = (fromIntegral $ score (input cpu) (reverse $ output cpu)) + 1
+  in
+   if n == 0
+   then 1
+   else 1 / n
 
 -- |
 -- determines how many children will be duplicated based on score rank and total number of parents to score
@@ -234,10 +251,10 @@ runGeneration maxcount gennum mutateprob gencpus =
         executec :: RandomGen m => CPU -> WriterT [String] (Rand m) CPU
         executec cpu = 
             do
-              tell ["Executing cpu ID: " ++ (showcpuid cpu)]
+  --            tell ["Executing cpu ID: " ++ (showcpuid cpu)]
               return $ executeCpu cpu maxcount
 
-        sortScore :: (CPU, Int) -> (CPU, Int) -> Ordering
+        sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
         sortScore (_,s1) (_,s2) = if s1 < s2
                                   then LT
                                   else
@@ -250,20 +267,22 @@ runGeneration maxcount gennum mutateprob gencpus =
         tell ["Running generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount)]
         executed <- mapM executec gencpus
         tell ["Scoring population"]
-        scores <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
+        (scores :: [(CPU, Rational)]) <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
         tell $ [show scores]
         tell ["Replicating based on score"]
-        replicated <- return $ gradePop scores
-        tell $ [show replicated]
+        newReplicated <- lift $ scoreAndChoose scoreCpu (length executed) executed
+        tell $ [show newReplicated]
+        replicated <- return $ map (\(cpu,_) -> cpu) newReplicated
         tell ["Mutating replicated children"]
         mutated <- mapM (\cpu ->
                              do
                                mutatedGenome <- lift $ mutate (childGenome cpu) mutateprob
                                return $ cpu {childGenome = mutatedGenome}
                         ) replicated
-        tell $ [show mutated]
-        
-        return executed
+    --    tell $ [show mutated]
+        tell ["Replace parents with children"]
+        newParents <- return $ map (\cpu -> cpuGenome (reverse $ childGenome cpu) (input cpu) (fromJust $ cpuid cpu)) mutated
+        return newParents
 
 runProg :: Int -> Int -> Int -> [Instruction] -> Double -> [Int] -> IO ()
 runProg maxexec gensize maxgen genome mutateprob expected =
@@ -281,14 +300,14 @@ runProg maxexec gensize maxgen genome mutateprob expected =
             do
               (v,o) <- evalRandIO $ runWriterT $ runGeneration maxexec gennum mutateprob prevgen 
               mapM_ putStrLn o
-              mapM_ putStrLn $ map (\cpu -> show $ iPointer cpu) v
+--              mapM_ putStrLn $ map (\cpu -> show $ iPointer cpu) v
               return (gennum+1,v)
     in
       do
         (gennum, final) <- iterateUntilM loopTest progLoop (0,initialGen)
         putStrLn $ show gennum
 
-preset = runProg 10000 20 2 (V.toList genomeReplicate) 0.01 [9,5,5,4,8,4]                 
+preset = runProg 10000 200 10000 (V.toList genomeReplicate) 0.001 [9,5,5,4,8,4]                 
       
 
 
@@ -632,7 +651,16 @@ iSelfLength cpu =
 
 iWriteChild :: CPU -> CPU
 iWriteChild cpu =
-    cpu { childGenome = (toEnum (ax cpu)):(childGenome cpu) }
+    let
+        minI = minBound :: Instruction
+        maxI = maxBound :: Instruction
+        minint = fromEnum minI :: Int
+        maxint = fromEnum maxI :: Int 
+    in
+      if ax cpu < minint || ax cpu > maxint
+      then cpu { childGenome = (toEnum 0):(childGenome cpu) }
+      else cpu { childGenome = (toEnum (ax cpu)):(childGenome cpu) }
+
                                       
 iWriteOutput :: CPU -> CPU
 iWriteOutput cpu =
