@@ -42,6 +42,7 @@ import Control.Monad.LoopWhile (loop,while)
 import Control.Monad.Loops (iterateUntilM)
 import Control.Monad (when)
 import qualified Control.Monad.Parallel as MP
+import Control.Concurrent.ParallelIO.Local
 import System.Random
 import System.Random.Shuffle (shuffleM)
 import Data.List (findIndex, splitAt, nub, maximumBy, minimumBy, sortBy, foldl1', tails)
@@ -130,8 +131,8 @@ scoreGeneric scoreFunc outputs =
     normalizedRawScores =
         if fitnessSum == 0
         then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/10) --minimum score
-                                        then 1/10
+        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/50) --minimum score
+                                        then 1/50
                                         else score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
@@ -264,30 +265,32 @@ createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
 createInitGen total g i =
     [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
 
-executePar :: RandomGen m => [CPU] -> Rand m [Int]
-executePar cpus =
-  let
-    randnums :: RandomGen m => Int -> Rand m [Int]
-    randnums n =
-      do
-        (nums :: [Int]) <- getRandoms
-        return $ take n nums
+-- executePar :: RandomGen m => Int -> [CPU] -> Rand m [Int]
+-- executePar maxcount cpus =
+--   let
+--     randnums :: RandomGen m => Int -> Rand m [Int]
+--     randnums n =
+--       do
+--         (nums :: [Int]) <- getRandoms
+--         return $ take n nums
 
---    exec num cpu =
---      do
         
 
-    execpar nums cpus =
-      let pairs = zipWith (\num cpu -> (mkStdGen num,cpu)) nums cpus
-      in
-        do
-          ()
---          return $ MP.mapM pairs
+--     execpar nums cpus =
+--       let pairs = zipWith (\num cpu -> (mkStdGen num,cpu)) nums cpus
+--           exec (gen, cpu) =
+--             do
+--               return $ evalRand (executeCpu cpu maxcount) gen
+--       in
+--         do
+-- --          ()
+--           exec pairs 
+
           
     
         
-  in
-    randnums (length cpus)
+--   in
+--     randnums (length cpus)
 
         
 runGeneration2 :: RandomGen m => Int -> Int -> Double -> [CPU] -> RandT m IO [CPU]
@@ -297,8 +300,8 @@ runGeneration2  maxcount gennum mutateprob gencpus =
         showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
         executec cpu =
           do
-              interleave $ return $ executeCpu cpu maxcount
---              return $ executeCpu cpu maxcount
+              return $ executeCpu cpu maxcount
+              -- interleave
 
         sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
         sortScore (_,s1) (_,s2) = if s1 < s2
@@ -315,17 +318,35 @@ runGeneration2  maxcount gennum mutateprob gencpus =
                                       if s1 > s2
                                       then GT
                                       else EQ
-    in
+
+
+        randnums n =
+          do
+            (nums :: [Int]) <- getRandoms
+            return $ take n nums
+
+        
+
+            
+
+    in    
       do
+                                      
+
 
         lift $ putStrLn ("\n\n\n========================\nRunning generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount))
 
-        executed <- mapM executec gencpus
+--        executed <- liftIO $ mapM executec gencpus
+        (gencpusComp :: [IO CPU]) <- return $ map (\cpu -> do executec cpu) gencpus
+        executed <- liftIO $ withPool 8 $ \pool -> parallel pool gencpusComp
         (scores :: [(CPU, Rational)]) <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
         lift $ putStrLn (show (drop ((length scores)-3) scores))
  
         newReplicated <- lift $ evalRandIO $ scoreAndChoose scoreCpu (length executed) executed
         lift $ putStrLn "\n\n\n\n\n"
+        randns <- randnums $ length newReplicated
+        randnsPairs <- return $ zipWith (\num nr -> (mkStdGen num, nr)) randns newReplicated
+        
         mutated <- mapM (\(cpu,score) ->
                              do
                                mutatedGenome <- lift $ evalRandIO $ mutate (childGenome cpu) mutateprob
@@ -414,13 +435,14 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final, _) <- iterateUntilM loopTest progLoop (0,initialGen, randGen)
         putStrLn $ show gennum
 
-preset = runProg 3000 3000 10000000 (V.toList genomeReplicate) 0.0005 [1,2,4,8,16,32,64,128]                 
+preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.0005 [1,2,4,8,16,32,64,128]                 
       
 
 
             
 mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
 mutate ins probthres =
+
     let minI = minBound :: Instruction
         maxI = maxBound :: Instruction
         getrandins :: RandomGen m => Rand m Instruction
@@ -442,6 +464,9 @@ mutate ins probthres =
                                    1 -> return [rins] -- Mutate
                                    2 -> return [i, rins] -- Insert
               return mutatedIns
+        
+      
+
     in
       do
         mutated <-
