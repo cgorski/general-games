@@ -34,6 +34,7 @@ module Game.Evolve.LinearCreature
   )
   where
 
+import System.IO
 import Control.Monad.Random
 import Control.Monad.Writer (WriterT, runWriterT, tell, Writer)
 import Control.Monad.Trans (lift,liftIO)
@@ -49,6 +50,7 @@ import qualified Data.Map as M
 import Data.Int (Int64)
 import Text.Printf (printf)
 import Data.Maybe (fromMaybe, fromJust)
+import Data.Bits
 
 data Instruction =
   Nop | -- do nothing
@@ -59,6 +61,7 @@ data Instruction =
   Mult | -- ax = bx * cx
   Div | -- ax = bx / cx
   Mod | -- ax = bx mod cx
+  RotateL | -- ax = bx rotatel cx
   TestLT | -- ax = 1 if  bx < cx else 0
   TestEQ | -- ax = 1 if bx == cx else 0
   Jmp | -- Add dx to instruction pointer mod self length if ax = 1
@@ -127,8 +130,8 @@ scoreGeneric scoreFunc outputs =
     normalizedRawScores =
         if fitnessSum == 0
         then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/50) --minimum score
-                                        then 1/50
+        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/10) --minimum score
+                                        then 1/10
                                         else score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
@@ -261,14 +264,41 @@ createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
 createInitGen total g i =
     [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
 
+executePar :: RandomGen m => [CPU] -> Rand m [Int]
+executePar cpus =
+  let
+    randnums :: RandomGen m => Int -> Rand m [Int]
+    randnums n =
+      do
+        (nums :: [Int]) <- getRandoms
+        return $ take n nums
+
+--    exec num cpu =
+--      do
+        
+
+    execpar nums cpus =
+      let pairs = zipWith (\num cpu -> (mkStdGen num,cpu)) nums cpus
+      in
+        do
+          ()
+--          return $ MP.mapM pairs
+          
+    
+        
+  in
+    randnums (length cpus)
+
+        
 runGeneration2 :: RandomGen m => Int -> Int -> Double -> [CPU] -> RandT m IO [CPU]
 runGeneration2  maxcount gennum mutateprob gencpus =
  
     let showcpuid :: CPU -> String
         showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
-        executec cpu = 
-            do
-              return $ executeCpu cpu maxcount
+        executec cpu =
+          do
+              interleave $ return $ executeCpu cpu maxcount
+--              return $ executeCpu cpu maxcount
 
         sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
         sortScore (_,s1) (_,s2) = if s1 < s2
@@ -306,6 +336,7 @@ runGeneration2  maxcount gennum mutateprob gencpus =
                                   (newMate,_) <- lift $ evalRandIO $ chooseByScore1 mutated 
                                   return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)
                       ) mutated
+        lift $ hFlush stdout
         return newParents
                                            
 
@@ -383,7 +414,7 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final, _) <- iterateUntilM loopTest progLoop (0,initialGen, randGen)
         putStrLn $ show gennum
 
-preset = runProg 2000 1000 10000000 (V.toList genomeReplicate) 0.001 [1,2,4,8,16,32,64,128]                 
+preset = runProg 3000 3000 10000000 (V.toList genomeReplicate) 0.0005 [1,2,4,8,16,32,64,128]                 
       
 
 
@@ -456,6 +487,7 @@ execInstruc cpu =
             Mult -> iMult cpu
             Div -> iDiv cpu
             Mod -> iMod cpu
+            RotateL -> iRotateL cpu
             TestLT -> iTestLT cpu
             TestEQ -> iTestEQ cpu
             Jmp -> iJmp cpu
@@ -621,6 +653,10 @@ iDiv cpu =
 iMod :: CPU -> CPU
 iMod cpu =
     if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = (bx cpu) `mod` (cx cpu) }
+
+iRotateL :: CPU -> CPU
+iRotateL cpu =
+    if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = (bx cpu) `rotate` (cx cpu) }
 
 iTestLT :: CPU -> CPU
 iTestLT cpu =
