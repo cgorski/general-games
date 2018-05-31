@@ -49,6 +49,7 @@ library
                      , containers
                      , vector
                      , mtl
+                     , monad-parallel
 
   default-language:    Haskell2010
 --  ghc-options:         -Wall
