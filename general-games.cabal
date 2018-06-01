@@ -25,7 +25,7 @@ executable foob
   main-is: Main.hs
   other-modules:
   hs-source-dirs: app
-  ghc-options: -threaded -feager-blackholing -rtsopts -O2 "-with-rtsopts=-N8 -qn8 -A256m -s"
+  ghc-options: -threaded -feager-blackholing -rtsopts -O2 "-with-rtsopts=-N16 -qn16 -A256m"
   build-depends:
     base >=4.7 && <5
     , general-games

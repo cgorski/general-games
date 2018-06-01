@@ -131,9 +131,10 @@ scoreGeneric scoreFunc outputs =
     normalizedRawScores =
         if fitnessSum == 0
         then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/50) --minimum score
-                                        then 1/50
+        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/10) --minimum score
+                                        then 1/10
                                         else score/fitnessSum)) adjustedRawScores
+--        else map (\(out,score) -> (out, score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
     maxAccumulated = maximum $ map (\(_,score) -> score) accumulated
@@ -293,8 +294,8 @@ createInitGen total g i =
 --     randnums (length cpus)
 
         
-runGeneration2 :: RandomGen m => Int -> Int -> Double -> [CPU] -> RandT m IO [CPU]
-runGeneration2  maxcount gennum mutateprob gencpus =
+runGeneration2 :: RandomGen m => Int -> Int -> Double -> [CPU] -> Rand StdGen [Int] -> RandT m IO [CPU]
+runGeneration2  maxcount gennum mutateprob gencpus inputProc =
  
     let showcpuid :: CPU -> String
         showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
@@ -319,21 +320,13 @@ runGeneration2  maxcount gennum mutateprob gencpus =
                                       then GT
                                       else EQ
 
-
         randnums n =
           do
             (nums :: [Int]) <- getRandoms
             return $ take n nums
 
-        
-
-            
-
     in    
       do
-                                      
-
-
         lift $ putStrLn ("\n\n\n========================\nRunning generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount))
 
 --        executed <- liftIO $ mapM executec gencpus
@@ -354,65 +347,15 @@ runGeneration2  maxcount gennum mutateprob gencpus =
                         ) newReplicated
         newParents <- mapM (\(cpu,score) ->
                                 do
-                                  (newMate,_) <- lift $ evalRandIO $ chooseByScore1 mutated 
-                                  return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)
+                                  (newMate,_) <- lift $ evalRandIO $ chooseByScore1 mutated
+                                  newInput <- lift $ evalRandIO $ inputProc
+                                  return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput (fromJust $ cpuid cpu)
                       ) mutated
         lift $ hFlush stdout
         return newParents
                                            
 
   
--- runGeneration :: RandomGen m => Int -> Int -> Double -> [CPU] -> WriterT [String] (Rand m) [CPU]
--- runGeneration maxcount gennum mutateprob gencpus =
---     let showcpuid :: CPU -> String
---         showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
---         executec :: RandomGen m => CPU -> WriterT [String] (Rand m) CPU
---         executec cpu = 
---             do
---   --            tell ["Executing cpu ID: " ++ (showcpuid cpu)]
---               return $ executeCpu cpu maxcount
-
---         sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
---         sortScore (_,s1) (_,s2) = if s1 < s2
---                                   then LT
---                                   else
---                                       if s1 > s2
---                                       then GT
---                                       else EQ
-
---         sortScore2 :: (CPU, Double) -> (CPU, Double) -> Ordering
---         sortScore2 (_,s1) (_,s2) = if s1 < s2
---                                   then LT
---                                   else
---                                       if s1 > s2
---                                       then GT
---                                       else EQ
-
-                                           
---     in
---       do
---         tell ["\n\n\n========================\nRunning generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount)]
---         tell ["\n"]
---         executed <- mapM executec gencpus
---         (scores :: [(CPU, Rational)]) <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
---         tell $ [show (drop ((length scores)-3) scores)]
---         tell $ ["\n"]
---         newReplicated <- lift $ scoreAndChoose scoreCpu (length executed) executed
---         tell $ ["\n\n\n\n\n"]
--- --        tell $ [show (drop 19 $ sortBy sortScore2 newReplicated)]
---         mutated <- mapM (\(cpu,score) ->
---                              do
---                                mutatedGenome <- lift $ mutate (childGenome cpu) mutateprob
---                                return $ (cpu {childGenome = mutatedGenome}, score)
---                         ) newReplicated
---         newParents <- mapM (\(cpu,score) ->
---                                 do
---                                   (newMate,_) <- lift $ chooseByScore1 mutated 
---                                   return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) (input cpu) (fromJust $ cpuid cpu)
---                       ) mutated
--- --        tell $ [show newParents]
---         return newParents
-
 runProg :: Int -> Int -> Int -> [Instruction] -> Double -> [Int] -> IO ()
 runProg maxexec gensize maxgen genome mutateprob expected =
     let
@@ -427,7 +370,7 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         progLoop :: (Int, [CPU], StdGen) -> IO (Int,[CPU],StdGen)
         progLoop (gennum, prevgen, randgen) =
             do
-              (v,randgen2) <- runRandT (runGeneration2 maxexec gennum mutateprob prevgen) randgen
+              (v,randgen2) <- runRandT (runGeneration2 maxexec gennum mutateprob prevgen randInput) randgen
               return (gennum+1,v,randgen2)
     in
       do
@@ -435,9 +378,13 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final, _) <- iterateUntilM loopTest progLoop (0,initialGen, randGen)
         putStrLn $ show gennum
 
-preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.0005 [1,2,4,8,16,32,64,128]                 
+preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.0001 [1,2,4,8,16,32,64,128]                 
       
-
+randInput :: RandomGen m => Rand m [Int]
+randInput =
+  do
+    start <- getRandomR(1,10000)
+    return $ [n*2 | n <- [start..(start+10)]]
 
             
 mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
@@ -627,7 +574,7 @@ genomeReplicate =
           SwapDx,
           Zero,
 
-          Incr,
+          ReadInput,
           WriteOutput,
           Incr,
           WriteOutput,
@@ -643,7 +590,8 @@ genomeReplicate =
           Neg,
           SwapDx,
           Nop,
-          NJmp]
+--          NJmp]
+          Nop]
               
           
           
