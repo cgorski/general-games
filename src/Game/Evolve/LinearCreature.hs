@@ -25,6 +25,7 @@ module Game.Evolve.LinearCreature
   ,runProg
   ,createInitGen
   ,preset
+  ,mainProg
   ,scoreGeneric
   ,sfunc1
   ,sfunc2
@@ -264,7 +265,20 @@ gradePop scores =
     
 createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
 createInitGen total g i =
-    [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
+  [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
+
+createInitGen2 :: RandomGen m => Int -> [Instruction] -> Rand StdGen [Int] -> RandT m IO [CPU]
+createInitGen2 total g i =
+  let 
+    mkOrg n =
+      do
+        randInput <- lift $ evalRandIO $ i
+        return $ cpuGenome g g randInput (gcid 0 n)
+  in
+    mapM mkOrg [1..total]
+  
+--    [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
+
 
 -- executePar :: RandomGen m => Int -> [CPU] -> Rand m [Int]
 -- executePar maxcount cpus =
@@ -378,7 +392,23 @@ runProg maxexec gensize maxgen genome mutateprob expected =
         (gennum, final, _) <- iterateUntilM loopTest progLoop (0,initialGen, randGen)
         putStrLn $ show gennum
 
-preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.0001 [1,2,4,8,16,32,64,128]                 
+preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.0001 [1,2,4,8,16,32,64,128]
+
+mainProg_ :: Int -> Int -> [Instruction] -> IO ()
+mainProg_ maxexec gensize genome =
+  do
+    initGen <- evalRandTIO $ createInitGen2 gensize genome randInput
+    
+    putStrLn $ show initGen
+    mainProg_ maxexec (gensize+1) genome
+    
+
+--mainProg :: Int -> Int -> [Instruction] -> IO ()
+mainProg :: IO ()
+mainProg  =
+  do
+    mainProg_ 2000 2000 (V.toList genomeReplicate)
+    
       
 randInput :: RandomGen m => Rand m [Int]
 randInput =

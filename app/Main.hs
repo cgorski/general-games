@@ -6,7 +6,7 @@ import Game.Evolve.LinearCreature
 
 main :: IO ()
 main = do
-  preset
+  mainProg
 --  putStrLn (show $ ValuePair 1 'w')
 
 --   let r = Ace
