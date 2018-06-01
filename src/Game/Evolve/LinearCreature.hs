@@ -46,6 +46,7 @@ import qualified Control.Monad.Parallel as MP
 import Control.Concurrent.ParallelIO.Local
 import System.Random
 import System.Random.Shuffle (shuffleM)
+import Control.Parallel.Strategies
 import Data.List (findIndex, splitAt, nub, maximumBy, minimumBy, sortBy, foldl1', tails)
 import qualified Data.Vector as V
 import qualified Data.Map as M
@@ -104,7 +105,7 @@ data CPU = CPU {
   genome :: V.Vector Instruction,
   mateGenome :: V.Vector Instruction,
   childGenome :: [Instruction],
-  executed :: [CPU],
+--  executed :: [CPU],
   jmpSignal :: Maybe Int,
   parents :: Maybe (CPU,CPU)
 } 
@@ -132,8 +133,8 @@ scoreGeneric scoreFunc outputs =
     normalizedRawScores =
         if fitnessSum == 0
         then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/10) --minimum score
-                                        then 1/10
+        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/5) --minimum score
+                                        then 1/5
                                         else score/fitnessSum)) adjustedRawScores
 --        else map (\(out,score) -> (out, score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
@@ -205,18 +206,21 @@ cpuGenome g mg i cid = newCpu {cpuid = Just cid,
 leadz4 :: Int -> String
 leadz4 n = printf "%04d" n
 
+leadz8 :: Int -> String
+leadz8 n = printf "%08d" n
+
 gcid :: Int -> Int -> String
 gcid g c = (leadz4 g) ++ "--" ++ (leadz4 c)
                     
 cpuGenomeV :: V.Vector Instruction -> [Int] -> String -> CPU
 cpuGenomeV g i cid = cpuGenome (V.toList g) (V.toList g) i cid
 
-scoreCalc :: Int -> Int -> Double
+scoreCalc :: Int -> Int -> Int
 scoreCalc expected given = fromIntegral (
-                                         let numcalc = (((expected-given)+1)^4)
+                                         let numcalc = (((expected-given)+1)^2)
                                          in
                                            if numcalc  > (maxBound :: Int)
-                                           then (maxBound :: Int)
+                                           then (maxBound :: Int)-(2^32)
                                            else numcalc)
 
 
@@ -228,8 +232,8 @@ score expected given =
         given2len = length given2
     in
       if given2len < expectedlen
-      then maxBound
-      else ceiling $ sum $ zipWith scoreCalc expected given
+      then maxBound-1
+      else sum $ zipWith scoreCalc expected given
 
 scoreCpu :: CPU -> Rational
 scoreCpu cpu =
@@ -394,27 +398,60 @@ runProg maxexec gensize maxgen genome mutateprob expected =
 
 preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.0001 [1,2,4,8,16,32,64,128]
 
-mainProg_ :: Int -> Int -> [Instruction] -> IO ()
-mainProg_ maxexec gensize genome =
+
+sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
+sortScore (_,s1) (_,s2) = if s1 < s2
+                          then LT
+                          else
+                            if s1 > s2
+                            then GT
+                            else EQ
+
+
+mainProg_ :: Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
+mainProg_ maxexec genNum lastGen inputFunc mutateProb =
   do
-    initGen <- evalRandTIO $ createInitGen2 gensize genome randInput
+--    (execFuncs :: [IO CPU]) <- return $ map (\cpu -> do return $ executeCpu cpu maxexec) lastGen
+--    executedGen <- return $ map (\cpu -> executeCpu cpu maxexec) lastGen
+--    executedGen <- liftIO $ withPool 4 $ \pool -> parallel pool execFuncs
+    executedGen <- return $ parMap rseq (\cpu -> executeCpu cpu maxexec) lastGen
+
+    rawScoredGen <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen
+    scoredGen <- evalRandIO $ scoreAndChoose scoreCpu (length executedGen) executedGen
+    mutated <- mapM (\(cpu,_) ->
+                        do
+                          mutatedGenome <- evalRandIO $ mutate (childGenome cpu) mutateProb
+                          return $ (cpu {childGenome = mutatedGenome}, score)
+                    ) scoredGen
     
-    putStrLn $ show initGen
-    mainProg_ maxexec (gensize+1) genome
+    nextGen <- mapM (\(cpu,_) ->
+                        do
+                          (newMate,_) <- evalRandIO $ chooseByScore1 scoredGen
+                          newInput <- evalRandIO $ inputFunc
+                          return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput (fromJust $ cpuid cpu)
+                    ) mutated
+    putStrLn "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+    putStrLn $ "Generation: " ++ show (leadz8 genNum) ++ "\n"
+
+    putStrLn $ show $ drop ((length rawScoredGen)-10) rawScoredGen
+
+    hFlush stdout
+    mainProg_ maxexec (genNum+1) nextGen inputFunc mutateProb
     
 
 --mainProg :: Int -> Int -> [Instruction] -> IO ()
 mainProg :: IO ()
 mainProg  =
   do
-    mainProg_ 2000 2000 (V.toList genomeReplicate)
+    initGen <- evalRandTIO $ createInitGen2 1000 (V.toList genomeReplicate) randInput 
+    mainProg_ 3000 0 initGen randInput 0.0001
     
       
 randInput :: RandomGen m => Rand m [Int]
 randInput =
   do
-    start <- getRandomR(1,10000)
-    return $ [n*2 | n <- [start..(start+10)]]
+    start <- getRandomR(1,100)
+    return $ [n*(2^n)+(start^2) | n <- [10..15]]
 
             
 mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
@@ -473,7 +510,7 @@ incrCpu cpu =
                     Nothing -> newPointer
     in
       cpu { iPointer = abs jmpInfo,
-            executed = cpu:(executed cpu),
+--            executed = cpu:(executed cpu),
             iCounter = (iCounter cpu) + 1,
             jmpSignal = Nothing}
 
@@ -528,7 +565,7 @@ newCpu = CPU { cpuid = Nothing,
                genome = V.fromList [],
                mateGenome = V.fromList [],
                childGenome = [],
-               executed = [],
+--               executed = [],
                jmpSignal = Nothing,
                parents = Nothing }
                         
