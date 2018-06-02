@@ -72,11 +72,14 @@ data Instruction =
   IsStackAvail | -- ax = 1 if stack can be popped, otherwise 0
   Push | -- push ax to stack
   Pop | -- pop stack to ax, 0 if empty
+  IsStackAvail2 | -- ax = 1 if stack can be popped, otherwise 0
+  Push2 | -- push ax to stack
+  Pop2 | -- pop stack to ax, 0 if empty
   ReadInput | -- pop input stack to ax
   IsInputAvail | -- ax = 1 if len input stack > 0, else ax = 0
-  IsMemAvail | -- ax = 1 if memory location bx available, otherwise ax = 0
-  MemStore | -- Store ax in Memory Cell bx
-  MemRetrieve | -- Retrieve memory cell bx to ax
+--  IsMemAvail | -- ax = 1 if memory location bx available, otherwise ax = 0
+--  MemStore | -- Store ax in Memory Cell bx
+--  MemRetrieve | -- Retrieve memory cell bx to ax
   SwapBx | -- swap ax bx 
   SwapCx | -- swap ax cx 
   SwapDx | -- swap ax dx
@@ -98,8 +101,9 @@ data CPU = CPU {
   dx :: Int,
   iCounter :: Int,
   iPointer :: Int,
-  memory :: M.Map Int Int,
+--  memory :: M.Map Int Int,
   stack :: [Int],
+  stack2 :: [Int],
   input :: [Int],
   output :: [Int],
   genome :: V.Vector Instruction,
@@ -115,7 +119,8 @@ data CPU = CPU {
 --                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
 --                ++ " child: " ++ show (reverse (childGenome cpu)) ++ "\n"
 instance Show CPU where
-    show cpu = " stack: " ++ show (stack cpu) ++ "\n" ++ " memory: " ++ show (memory cpu) ++ "\n"
+    show cpu = " stack: " ++ show (stack cpu) ++ "\n" -- ++ " memory: " ++ show (memory cpu) ++ "\n"
+               ++ " stack2: " ++ show (stack2 cpu) ++ "\n" -- ++ " memory: " ++ show (memory cpu) ++ "\n"
                ++ "cpuid: " ++ fromMaybe "[No ID Provided" (cpuid cpu)
                ++ " ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ "\n" -- ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
@@ -422,7 +427,7 @@ sortScore (_,s1) (_,s2) = if s1 < s2
 mainProg_ :: Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
 mainProg_ maxexec genNum lastGen inputFunc mutateProb =
   let
-    parMapChunk strat f = withStrategy (parListChunk 10 rseq) . map f
+    parMapChunk strat f = withStrategy (parListChunk 25 rseq) . map f
   in
     do
       --    (execFuncs :: [IO CPU]) <- return $ map (\cpu -> do return $ executeCpu cpu maxexec) lastGen
@@ -440,7 +445,7 @@ mainProg_ maxexec genNum lastGen inputFunc mutateProb =
   
 --    putStrLn $ show $ take 1 rawScoredGen
 
---    putStrLn $ show rawScoredGen
+--      putStrLn $ show rawScoredGen
 
       hFlush stdout
 
@@ -465,15 +470,15 @@ mainProg_ maxexec genNum lastGen inputFunc mutateProb =
 mainProg :: IO ()
 mainProg  =
   do
-    initGen <- evalRandTIO $ createInitGen2 10000 (V.toList genomeReplicate) randInput 
+    initGen <- evalRandTIO $ createInitGen2 5000 (V.toList genomeReplicate) randInput 
     mainProg_ 5000 0 initGen randInput 0.001
-    
+
       
 randInput :: RandomGen m => Rand m [Int]
 randInput =
   do
-    start <- getRandomR(1,100)
-    return $ [n*(2^n)+(start^2) | n <- [10..19]]
+    start <- getRandomR(1,10000)
+    return $ [start*(2^n) |(n :: Int) <- [10..19]]
 
             
 mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
@@ -556,11 +561,14 @@ execInstruc cpu =
             IsStackAvail -> iIsStackAvail cpu
             Push -> iPush cpu
             Pop -> iPop cpu
+            IsStackAvail2 -> iIsStackAvail2 cpu
+            Push2 -> iPush2 cpu
+            Pop2 -> iPop2 cpu
             ReadInput -> iReadInput cpu
             IsInputAvail -> iIsInputAvail cpu
-            IsMemAvail ->  iIsMemAvail cpu
-            MemStore -> iMemStore cpu
-            MemRetrieve -> iMemRetrieve cpu
+--            IsMemAvail ->  iIsMemAvail cpu
+--            MemStore -> iMemStore cpu
+--            MemRetrieve -> iMemRetrieve cpu
             SwapBx -> iSwapBx cpu
             SwapCx -> iSwapCx cpu
             SwapDx -> iSwapDx cpu
@@ -580,8 +588,9 @@ newCpu = CPU { cpuid = Nothing,
                dx = 0,
                iCounter = 0,
                iPointer = 0,
-               memory = M.fromList [],
+--               memory = M.fromList [],
                stack = [],
+               stack2 = [],               
                input = [],
                output = [],
                genome = V.fromList [],
@@ -1074,7 +1083,7 @@ iMult cpu =
 
 iDiv :: CPU -> CPU
 iDiv cpu =
-    if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = (bx cpu) `div` (cx cpu) }
+    if (cx cpu) == 0 || (bx cpu) == minBound then cpu {ax = 0} else cpu { ax = (bx cpu) `div` (cx cpu) }
 
 iMod :: CPU -> CPU
 iMod cpu =
@@ -1125,6 +1134,24 @@ iPop cpu =
       [] -> cpu { ax = 0 }
       (x:_) -> cpu { ax = x }
 
+iIsStackAvail2 :: CPU -> CPU
+iIsStackAvail2 cpu =
+    case (stack2 cpu) of
+      [] -> cpu { ax = 0 }
+      _ -> cpu { ax = 1 }
+
+iPush2 :: CPU -> CPU
+iPush2 cpu =
+    cpu { stack2 = (ax cpu):(stack2 cpu) }
+         
+iPop2 :: CPU -> CPU
+iPop2 cpu =
+    case (stack2 cpu) of
+      [] -> cpu { ax = 0 }
+      (x:_) -> cpu { ax = x }
+
+
+
 iReadInput :: CPU -> CPU
 iReadInput cpu =
     case (input cpu) of
@@ -1137,22 +1164,22 @@ iIsInputAvail cpu =
       [] -> cpu { ax = 0 }
       _ -> cpu { ax = 1 }
 
-iIsMemAvail :: CPU -> CPU
-iIsMemAvail cpu =
-    case M.member (bx cpu) (memory cpu) of
-      True -> cpu { ax = 1 }
-      False -> cpu { ax = 0 }
+-- iIsMemAvail :: CPU -> CPU
+-- iIsMemAvail cpu =
+--     case M.member (bx cpu) (memory cpu) of
+--       True -> cpu { ax = 1 }
+--       False -> cpu { ax = 0 }
 
-iMemStore :: CPU -> CPU
-iMemStore cpu =
-    cpu { memory = M.insert (bx cpu) (ax cpu) (memory cpu) }
+-- iMemStore :: CPU -> CPU
+-- iMemStore cpu =
+--     cpu { memory = M.insert (bx cpu) (ax cpu) (memory cpu) }
                
-iMemRetrieve :: CPU -> CPU
-iMemRetrieve cpu =
-    let val = M.lookup (bx cpu) (memory cpu) in
-    case val of
-      Just v -> cpu { ax = v }
-      Nothing -> cpu { ax = 0 }
+-- iMemRetrieve :: CPU -> CPU
+-- iMemRetrieve cpu =
+--     let val = M.lookup (bx cpu) (memory cpu) in
+--     case val of
+--       Just v -> cpu { ax = v }
+--       Nothing -> cpu { ax = 0 }
 
 iSwapBx :: CPU -> CPU
 iSwapBx cpu =
