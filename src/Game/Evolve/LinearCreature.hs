@@ -16,15 +16,12 @@ module Game.Evolve.LinearCreature
   ,executeCpu
   ,newCpu
   ,genomeReplicate
---  ,cpuReplicate
   ,iReadSelf
   ,cpuGenome
   ,score
   ,scoreCalc
   ,scoreCpu
-  ,runProg
   ,createInitGen
-  ,preset
   ,mainProg
   ,scoreGeneric
   ,sfunc1
@@ -37,22 +34,11 @@ module Game.Evolve.LinearCreature
 
 import System.IO
 import Control.Monad.Random
-import Control.Monad.Writer (WriterT, runWriterT, tell, Writer)
-import Control.Monad.Trans (lift,liftIO)
-import Control.Monad.LoopWhile (loop,while)
-import Control.Monad.Loops (iterateUntilM)
-import Control.Monad (when)
-import qualified Control.Monad.Parallel as MP
-import Control.Concurrent.ParallelIO.Local
-import System.Random
-import System.Random.Shuffle (shuffleM)
 import Control.Parallel.Strategies
-import Data.List (findIndex, splitAt, nub, maximumBy, minimumBy, sortBy, foldl1', tails)
+import Data.List 
 import qualified Data.Vector as V
-import qualified Data.Map as M
-import Data.Int (Int64)
-import Text.Printf (printf)
-import Data.Maybe (fromMaybe, fromJust)
+import Text.Printf 
+import Data.Maybe 
 import Data.Bits
 
 data Instruction =
@@ -77,9 +63,6 @@ data Instruction =
   Pop2 | -- pop stack to ax, 0 if empty
   ReadInput | -- pop input stack to ax
   IsInputAvail | -- ax = 1 if len input stack > 0, else ax = 0
---  IsMemAvail | -- ax = 1 if memory location bx available, otherwise ax = 0
---  MemStore | -- Store ax in Memory Cell bx
---  MemRetrieve | -- Retrieve memory cell bx to ax
   SwapBx | -- swap ax bx 
   SwapCx | -- swap ax cx 
   SwapDx | -- swap ax dx
@@ -101,7 +84,6 @@ data CPU = CPU {
   dx :: Int,
   iCounter :: Int,
   iPointer :: Int,
---  memory :: M.Map Int Int,
   stack :: [Int],
   stack2 :: [Int],
   input :: [Int],
@@ -109,46 +91,29 @@ data CPU = CPU {
   genome :: V.Vector Instruction,
   mateGenome :: V.Vector Instruction,
   childGenome :: [Instruction],
---  executed :: [CPU],
   jmpSignal :: Maybe Int,
   parents :: Maybe (CPU,CPU)
-} 
+} deriving (Show)
 
--- instance Show CPU where
---     show cpu = "ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
---                ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
---                ++ " child: " ++ show (reverse (childGenome cpu)) ++ "\n"
-instance Show CPU where
-    show cpu = " stack: " ++ show (stack cpu) ++ "\n" -- ++ " memory: " ++ show (memory cpu) ++ "\n"
-               ++ " stack2: " ++ show (stack2 cpu) ++ "\n" -- ++ " memory: " ++ show (memory cpu) ++ "\n"
-               ++ "cpuid: " ++ fromMaybe "[No ID Provided" (cpuid cpu)
-               ++ " ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
-               ++ " iPointer: " ++ show (iPointer cpu) ++ " iCounter: " ++ show (iCounter cpu) ++ "\n" -- ++ " Instruc: " ++ show ((genome cpu) V.! (iPointer cpu))
-               ++ " input: " ++ show (input cpu) ++ "\n output: " ++ show (reverse $ output cpu) ++ "\n"
-               ++ " genome: " ++ show (genome cpu) ++ "\n" ++ " childGenome: " ++ show (reverse $ childGenome cpu) ++ "\n"
 
-               
-
--- new funcs
--- func must return non-negative number
 scoreGeneric :: (a -> Rational) -> [a] -> [(a, Double)]
 scoreGeneric scoreFunc outputs =
   let
     rawScores = map (\out -> (out, scoreFunc out)) outputs
-    minScore = minimum $ map (\(_,score) -> score) rawScores
-    adjustedRawScores = map (\(out,score) -> (out,score-minScore)) rawScores
-    fitnessSum = sum $ map (\(_,score) -> score) adjustedRawScores
+    minScore = minimum $ map (\(_,score1) -> score1) rawScores
+    adjustedRawScores = map (\(out,score1) -> (out,score1-minScore)) rawScores
+    fitnessSum = sum $ map (\(_,score1) -> score1) adjustedRawScores
     normalizedRawScores =
         if fitnessSum == 0
-        then map (\(out,score) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score) -> (out, if (score/fitnessSum) < (1/20) --minimum score
+        then map (\(out,_) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
+        else map (\(out,score1) -> (out, if (score1/fitnessSum) < (1/20) --minimum score
                                         then 1/20
-                                        else score/fitnessSum)) adjustedRawScores
+                                        else score1/fitnessSum)) adjustedRawScores
 --        else map (\(out,score) -> (out, score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
-    accumulated = scanl1 (\(out1,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
-    maxAccumulated = maximum $ map (\(_,score) -> score) accumulated
-    normalizedAccumulated = map (\(out,score) -> (out,score/maxAccumulated)) accumulated
+    accumulated = scanl1 (\(_,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
+    maxAccumulated = maximum $ map (\(_,score1) -> score1) accumulated
+    normalizedAccumulated = map (\(out,score1) -> (out,score1/maxAccumulated)) accumulated
     
   in
     reverse $ map (\(out,normalizedScore) -> (out,fromRational normalizedScore)) normalizedAccumulated
@@ -170,11 +135,11 @@ sfunc2 num =
 -- Take sorted list descending accumulated scores
 chooseByScore :: RandomGen m => Int -> [(a, Double)] -> Rand m [(a, Double)]
 chooseByScore numToChoose scoredPairs =
-    let choosePair i =
+    let choosePair _ =
             do
               (prob :: Double) <- getRandomR(0.0,1.0)
               pairIndex <-
-                  case findIndex (\(_,score) -> prob > score) scoredPairs of
+                  case findIndex (\(_,score1) -> prob > score1) scoredPairs of
                     Just index ->
                       case index of
                         0 -> return index
@@ -220,15 +185,12 @@ leadz8 n = printf "%08d" n
 gcid :: Int -> Int -> String
 gcid g c = (leadz4 g) ++ "--" ++ (leadz4 c)
                     
-cpuGenomeV :: V.Vector Instruction -> [Int] -> String -> CPU
-cpuGenomeV g i cid = cpuGenome (V.toList g) (V.toList g) i cid
-
 scoreCalc :: Int -> Int -> Integer
 scoreCalc expected given =
-  let (numcalc ::Integer) = ((((toInteger expected)-(toInteger given))+1)^2)
+  let (numcalc ::Integer) = ((((toInteger expected)-(toInteger given))+1)^(2 :: Int))
   in
     if numcalc  > (toInteger (maxBound :: Int))
-    then toInteger $ (maxBound :: Int)-(2^32)
+    then toInteger $ (maxBound :: Int)-(2^(32 :: Int))
     else toInteger $ numcalc
 
 
@@ -245,7 +207,7 @@ score expected given =
         let (sCalcs :: [Integer]) = zipWith scoreCalc expected given
             (total :: Integer) = sum sCalcs
             newTotal = if total > (toInteger (maxBound :: Int))
-                       then (toInteger (maxBound :: Int))-(2^32)
+                       then (toInteger (maxBound :: Int))-(2^(32 :: Int))
                        else total
         in
           fromIntegral newTotal
@@ -258,29 +220,8 @@ scoreCpu cpu =
    then 1
    else 1 / n
 
--- |
--- determines how many children will be duplicated based on score rank and total number of parents to score
--- the lower the scorerank, the better the score
--- start with trival example, use exponention or better later
--- survivalfactor is number of duplicates to create of creature
-gradeFunc :: Int -> Int -> Int
-gradeFunc scorerank numparents =
-    let survivalfactor = numparents - scorerank
-    in
-      if scorerank < 3
-      then survivalfactor * 5
-      else if scorerank > 20
-           then survivalfactor * 2
-           else survivalfactor
 
-gradePop :: [(CPU, Int)] -> [CPU]
-gradePop scores =
-    let lenscores = length scores
-        rank :: [(CPU, Int)] -> [CPU] -> Int -> [CPU]
-        rank [] ranked _ = ranked
-        rank ((cpu,_):xs) ranked n = rank xs ((replicate (gradeFunc n lenscores) cpu)++ranked) (n+1)
-    in
-      rank scores [] 0
+
     
 createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
 createInitGen total g i =
@@ -291,8 +232,8 @@ createInitGen2 total g i =
   let 
     mkOrg n =
       do
-        randInput <- lift $ evalRandIO $ i
-        return $ cpuGenome g g randInput (gcid 0 n)
+        randInput1 <- lift $ evalRandIO $ i
+        return $ cpuGenome g g randInput1 (gcid 0 n)
   in
     mapM mkOrg [1..total]
   
@@ -327,91 +268,9 @@ createInitGen2 total g i =
 --     randnums (length cpus)
 
         
-runGeneration2 :: RandomGen m => Int -> Int -> Double -> [CPU] -> Rand StdGen [Int] -> RandT m IO [CPU]
-runGeneration2  maxcount gennum mutateprob gencpus inputProc =
- 
-    let showcpuid :: CPU -> String
-        showcpuid cpu = fromMaybe  "[No ID Provided]" $ cpuid cpu
-        executec cpu =
-          do
-              return $ executeCpu cpu maxcount
-              -- interleave
-
-        sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
-        sortScore (_,s1) (_,s2) = if s1 < s2
-                                  then LT
-                                  else
-                                      if s1 > s2
-                                      then GT
-                                      else EQ
-
-        sortScore2 :: (CPU, Double) -> (CPU, Double) -> Ordering
-        sortScore2 (_,s1) (_,s2) = if s1 < s2
-                                  then LT
-                                  else
-                                      if s1 > s2
-                                      then GT
-                                      else EQ
-
-        randnums n =
-          do
-            (nums :: [Int]) <- getRandoms
-            return $ take n nums
-
-    in    
-      do
-        lift $ putStrLn ("\n\n\n========================\nRunning generation number: " ++ (show gennum) ++ "\t" ++ "Size: " ++ (show $ length gencpus) ++ " Maxcount: " ++ (show maxcount))
-
---        executed <- liftIO $ mapM executec gencpus
-        (gencpusComp :: [IO CPU]) <- return $ map (\cpu -> do executec cpu) gencpus
-        executed <- liftIO $ withPool 8 $ \pool -> parallel pool gencpusComp
-        (scores :: [(CPU, Rational)]) <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executed
-        lift $ putStrLn (show (drop ((length scores)-3) scores))
- 
-        newReplicated <- lift $ evalRandIO $ scoreAndChoose scoreCpu (length executed) executed
-        lift $ putStrLn "\n\n\n\n\n"
-        randns <- randnums $ length newReplicated
-        randnsPairs <- return $ zipWith (\num nr -> (mkStdGen num, nr)) randns newReplicated
-        
-        mutated <- mapM (\(cpu,score) ->
-                             do
-                               mutatedGenome <- lift $ evalRandIO $ mutate (childGenome cpu) mutateprob
-                               return $ (cpu {childGenome = mutatedGenome}, score)
-                        ) newReplicated
-        newParents <- mapM (\(cpu,score) ->
-                                do
-                                  (newMate,_) <- lift $ evalRandIO $ chooseByScore1 mutated
-                                  newInput <- lift $ evalRandIO $ inputProc
-                                  return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput (fromJust $ cpuid cpu)
-                      ) mutated
-        lift $ hFlush stdout
-        return newParents
                                            
 
   
-runProg :: Int -> Int -> Int -> [Instruction] -> Double -> [Int] -> IO ()
-runProg maxexec gensize maxgen genome mutateprob expected =
-    let
-        loopTest :: (Int, [CPU], StdGen) -> Bool
-        loopTest (gennum, _, _) =
-            if gennum >= maxgen
-            then True -- we have reached/exceeded the max number of generations
-            else False -- keep going
-
-        initialGen = createInitGen gensize genome expected
-                         
-        progLoop :: (Int, [CPU], StdGen) -> IO (Int,[CPU],StdGen)
-        progLoop (gennum, prevgen, randgen) =
-            do
-              (v,randgen2) <- runRandT (runGeneration2 maxexec gennum mutateprob prevgen randInput) randgen
-              return (gennum+1,v,randgen2)
-    in
-      do
-        randGen <- getStdGen
-        (gennum, final, _) <- iterateUntilM loopTest progLoop (0,initialGen, randGen)
-        putStrLn $ show gennum
-
-preset = runProg 2000 2000 10000000 (V.toList genomeReplicate) 0.001 [1,2,4,8,16,32,64,128]
 
 
 sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
@@ -427,13 +286,13 @@ sortScore (_,s1) (_,s2) = if s1 < s2
 mainProg_ :: Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
 mainProg_ maxexec genNum lastGen inputFunc mutateProb =
   let
-    parMapChunk strat f = withStrategy (parListChunk 25 rseq) . map f
+    parMapChunk f = withStrategy (parListChunk 25 rseq) . map f
   in
     do
       --    (execFuncs :: [IO CPU]) <- return $ map (\cpu -> do return $ executeCpu cpu maxexec) lastGen
       --    executedGen <- return $ map (\cpu -> executeCpu cpu maxexec) lastGen
       --    executedGen <- liftIO $ withPool 4 $ \pool -> parallel pool execFuncs
-      executedGen <- return $! parMapChunk rseq (\cpu -> executeCpu cpu maxexec) lastGen
+      executedGen <- return $! parMapChunk (\cpu -> executeCpu cpu maxexec) lastGen
   
       rawScoredGen <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen
   
@@ -470,7 +329,7 @@ mainProg_ maxexec genNum lastGen inputFunc mutateProb =
 mainProg :: IO ()
 mainProg  =
   do
-    initGen <- evalRandTIO $ createInitGen2 5000 (V.toList genomeReplicate) randInput 
+    initGen <- evalRandTIO $ createInitGen2 10 (V.toList genomeReplicate) randInput 
     mainProg_ 5000 0 initGen randInput 0.001
 
       
@@ -503,7 +362,7 @@ mutate ins probthres =
                             else case randmuttype of
                                    0 -> return []  -- Delete
                                    1 -> return [rins] -- Mutate
-                                   2 -> return [i, rins] -- Insert
+                                   _ -> return [i, rins] -- Insert
               return mutatedIns
         
       
@@ -523,7 +382,7 @@ executeCpu cpu countmax
     | (iCounter cpu) < countmax =
         case V.length (genome cpu) of
           0 -> cpu {iCounter = countmax}
-          n -> executeCpu (execInstruc cpu) countmax
+          _ -> executeCpu (execInstruc cpu) countmax
     | otherwise = cpu
 
 
@@ -537,7 +396,6 @@ incrCpu cpu =
                     Nothing -> newPointer
     in
       cpu { iPointer = abs jmpInfo,
---            executed = cpu:(executed cpu),
             iCounter = (iCounter cpu) + 1,
             jmpSignal = Nothing}
 
@@ -566,9 +424,6 @@ execInstruc cpu =
             Pop2 -> iPop2 cpu
             ReadInput -> iReadInput cpu
             IsInputAvail -> iIsInputAvail cpu
---            IsMemAvail ->  iIsMemAvail cpu
---            MemStore -> iMemStore cpu
---            MemRetrieve -> iMemRetrieve cpu
             SwapBx -> iSwapBx cpu
             SwapCx -> iSwapCx cpu
             SwapDx -> iSwapDx cpu
@@ -581,6 +436,7 @@ execInstruc cpu =
   in
     incrCpu newc
 
+newCpu :: CPU
 newCpu = CPU { cpuid = Nothing,
                ax = 0,
                bx = 0,
@@ -588,7 +444,6 @@ newCpu = CPU { cpuid = Nothing,
                dx = 0,
                iCounter = 0,
                iPointer = 0,
---               memory = M.fromList [],
                stack = [],
                stack2 = [],               
                input = [],
@@ -596,7 +451,6 @@ newCpu = CPU { cpuid = Nothing,
                genome = V.fromList [],
                mateGenome = V.fromList [],
                childGenome = [],
---               executed = [],
                jmpSignal = Nothing,
                parents = Nothing }
                         
@@ -1055,8 +909,6 @@ genomeReplicate =
 --          NJmp]
           Nop]
               
-          
-          
 
 iNop :: CPU -> CPU
 iNop cpu = cpu
@@ -1151,7 +1003,6 @@ iPop2 cpu =
       (x:_) -> cpu { ax = x }
 
 
-
 iReadInput :: CPU -> CPU
 iReadInput cpu =
     case (input cpu) of
@@ -1163,23 +1014,6 @@ iIsInputAvail cpu =
     case (input cpu) of
       [] -> cpu { ax = 0 }
       _ -> cpu { ax = 1 }
-
--- iIsMemAvail :: CPU -> CPU
--- iIsMemAvail cpu =
---     case M.member (bx cpu) (memory cpu) of
---       True -> cpu { ax = 1 }
---       False -> cpu { ax = 0 }
-
--- iMemStore :: CPU -> CPU
--- iMemStore cpu =
---     cpu { memory = M.insert (bx cpu) (ax cpu) (memory cpu) }
-               
--- iMemRetrieve :: CPU -> CPU
--- iMemRetrieve cpu =
---     let val = M.lookup (bx cpu) (memory cpu) in
---     case val of
---       Just v -> cpu { ax = v }
---       Nothing -> cpu { ax = 0 }
 
 iSwapBx :: CPU -> CPU
 iSwapBx cpu =
