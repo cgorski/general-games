@@ -109,7 +109,6 @@ scoreGeneric scoreFunc outputs =
         else map (\(out,score1) -> (out, if (score1/fitnessSum) < (1/20) --minimum score
                                         then 1/20
                                         else score1/fitnessSum)) adjustedRawScores
---        else map (\(out,score) -> (out, score/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(_,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
     maxAccumulated = maximum $ map (\(_,score1) -> score1) accumulated
@@ -161,14 +160,7 @@ scoreAndChoose :: RandomGen m => (a -> Rational) -> Int -> [a] -> Rand m [(a, Do
 scoreAndChoose scoreFunc numToChoose outputs = 
    chooseByScore numToChoose (scoreGeneric scoreFunc outputs)
 
-          
-              
-
-   
-  
  
---cpuReplicate :: [Int] -> String -> CPU
---cpuReplicate i cid = cpuGenome (V.toList genomeReplicate) i cid
 
 cpuGenome :: [Instruction] -> [Instruction] -> [Int] -> String -> CPU
 cpuGenome g mg i cid = newCpu {cpuid = Just cid,
@@ -237,35 +229,6 @@ createInitGen2 total g i =
   in
     mapM mkOrg [1..total]
   
---    [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
-
-
--- executePar :: RandomGen m => Int -> [CPU] -> Rand m [Int]
--- executePar maxcount cpus =
---   let
---     randnums :: RandomGen m => Int -> Rand m [Int]
---     randnums n =
---       do
---         (nums :: [Int]) <- getRandoms
---         return $ take n nums
-
-        
-
---     execpar nums cpus =
---       let pairs = zipWith (\num cpu -> (mkStdGen num,cpu)) nums cpus
---           exec (gen, cpu) =
---             do
---               return $ evalRand (executeCpu cpu maxcount) gen
---       in
---         do
--- --          ()
---           exec pairs 
-
-          
-    
-        
---   in
---     randnums (length cpus)
 
         
                                            
@@ -289,33 +252,14 @@ mainProg_ maxexec genNum lastGen inputFunc mutateProb =
     parMapChunk f = withStrategy (parListChunk 25 rseq) . map f
   in
     do
-      --    (execFuncs :: [IO CPU]) <- return $ map (\cpu -> do return $ executeCpu cpu maxexec) lastGen
-      --    executedGen <- return $ map (\cpu -> executeCpu cpu maxexec) lastGen
-      --    executedGen <- liftIO $ withPool 4 $ \pool -> parallel pool execFuncs
       executedGen <- return $! parMapChunk (\cpu -> executeCpu cpu maxexec) lastGen
-  
       rawScoredGen <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen
-  
-      putStrLn "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-      putStrLn $ "Generation: " ++ show (leadz8 genNum) ++ "\n"
-  
-      putStrLn $ show $ drop ((length rawScoredGen)-3) rawScoredGen
-  
-  
---    putStrLn $ show $ take 1 rawScoredGen
-
---      putStrLn $ show rawScoredGen
-
-      hFlush stdout
-
-    
       scoredGen <- evalRandIO $ scoreAndChoose scoreCpu (length executedGen) executedGen
       mutated <- mapM (\(cpu,_) ->
                          do
                            mutatedGenome <- evalRandIO $ mutate (childGenome cpu) mutateProb
                            return $ (cpu {childGenome = mutatedGenome}, score)
                       ) scoredGen
-      
       nextGen <- mapM (\(cpu,_) ->
                          do
                            (newMate,_) <- evalRandIO $ chooseByScore1 scoredGen
@@ -542,372 +486,9 @@ genomeReplicate =
           Neg,
           SwapDx,
 
---- New
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
-          Nop,
 
---- New          
---          NJmp]
-          Nop]
+          NJmp]
+
               
 
 iNop :: CPU -> CPU
