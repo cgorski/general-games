@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
 
 -- |
@@ -36,6 +38,8 @@ module Game.Evolve.LinearCreature
   where
 
 import System.IO
+import GHC.Generics (Generic)
+import Control.DeepSeq
 import Control.Monad.Random
 import Control.Monad.Writer (WriterT, runWriterT, tell, Writer)
 import Control.Monad.Trans (lift,liftIO)
@@ -90,7 +94,7 @@ data Instruction =
   WriteChild | -- write instruction type ax to end of child
   WriteOutput  -- push number ax to output
 
-  deriving (Show, Enum, Eq, Ord, Bounded)
+  deriving (Show, Enum, Eq, Ord, Bounded, Generic, NFData)
 
   
 data CPU = CPU {
@@ -112,7 +116,7 @@ data CPU = CPU {
 --  executed :: [CPU],
   jmpSignal :: Maybe Int,
   parents :: Maybe (CPU,CPU)
-} 
+} deriving (Generic, NFData)
 
 -- instance Show CPU where
 --     show cpu = "ax: " ++ show (ax cpu) ++ " bx: " ++ show (bx cpu) ++ " cx: " ++ show (cx cpu) ++ " dx: " ++ show (dx cpu)
@@ -427,13 +431,13 @@ sortScore (_,s1) (_,s2) = if s1 < s2
 mainProg_ :: Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
 mainProg_ maxexec genNum lastGen inputFunc mutateProb =
   let
-    parMapChunk strat f = withStrategy (parListChunk 25 rseq) . map f
+    parMapChunk strat f = withStrategy (parListChunk 1 rseq) . map f
   in
     do
       --    (execFuncs :: [IO CPU]) <- return $ map (\cpu -> do return $ executeCpu cpu maxexec) lastGen
       --    executedGen <- return $ map (\cpu -> executeCpu cpu maxexec) lastGen
       --    executedGen <- liftIO $ withPool 4 $ \pool -> parallel pool execFuncs
-      executedGen <- return $! parMapChunk rseq (\cpu -> executeCpu cpu maxexec) lastGen
+      executedGen <- return $! parMapChunk (rdeepseq :: Strategy CPU) (\cpu -> executeCpu cpu maxexec) lastGen
   
       rawScoredGen <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen
   
@@ -471,14 +475,14 @@ mainProg :: IO ()
 mainProg  =
   do
     initGen <- evalRandTIO $ createInitGen2 5000 (V.toList genomeReplicate) randInput 
-    mainProg_ 5000 0 initGen randInput 0.001
+    mainProg_ 5000 0 initGen randInput 0.0001
 
       
 randInput :: RandomGen m => Rand m [Int]
 randInput =
   do
     start <- getRandomR(1,10000)
-    return $ [start*(2^n) |(n :: Int) <- [10..19]]
+    return $ [start*(2^n) |(n :: Int) <- [10..13]]
 
             
 mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
