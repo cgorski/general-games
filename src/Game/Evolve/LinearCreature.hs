@@ -11,23 +11,9 @@
 -- The Game.Implement.Card module provides fundamental operations for a deck of cards.
 module Game.Evolve.LinearCreature
   (
-   CPU(..)
-  ,Instruction(..)
-  ,executeCpu
-  ,newCpu
-  ,genomeReplicate
-  ,iReadSelf
-  ,cpuGenome
-  ,score
-  ,scoreCalc
-  ,scoreCpu
-  ,createInitGen
-  ,mainProg
-  ,scoreGeneric
-  ,sfunc1
-  ,sfunc2
-  ,chooseByScore
-  ,scoreAndChoose
+--   CPU(..)
+--  ,Instruction(..)
+  mainProg
 
   )
   where
@@ -37,7 +23,7 @@ import Control.Parallel.Strategies
 import Data.List 
 import qualified Data.Vector as V
 import Text.Printf 
-import Data.Maybe 
+
 import Data.Bits
 import Data.UUID
 
@@ -119,16 +105,7 @@ scoreGeneric scoreFunc outputs =
 
   
 
-sfunc1 :: Int -> Rational
-sfunc1 num = fromIntegral $ abs (10-(toInteger num))
 
-sfunc2 :: Int -> Rational
-sfunc2 num =
-    let n = fromIntegral $ abs (10-(toInteger num)) + 1
-    in
-     if n == 0
-     then 1
-     else 1 / n
 
 
 -- Take sorted list descending accumulated scores
@@ -162,18 +139,38 @@ scoreAndChoose scoreFunc numToChoose outputs =
 
  
 
-cpuGenome :: RandomGen m => [Instruction] -> [Instruction] -> [Int] -> String -> CPU -> Rand m UUID
-cpuGenome g mg i cid = newCpu {
-                         cpuID = getRandom,
-                         genome = V.fromList g,
-                         mateGenome = V.fromList mg,
-                         input = i
-                       }
+cpuGenome :: RandomGen m => [Instruction] -> [Instruction] -> [Int] -> Rand m CPU
+cpuGenome g mg i =
+  do
+    uuid <- getRandom
+    return $ CPU {
+      ax = 0,
+      bx = 0,
+      cx = 0,
+      dx = 0,
+      iCounter = 0,
+      iPointer = 0,
+      stack = [],
+      stack2 = [],               
+      input = i,
+      output = [],
+
+      cpuid = uuid,
+      genome = V.fromList g,
+      mateGenome = V.fromList mg,
+      childGenome = [],
+
+
+      jmpSignal = Nothing,
+      parents = Nothing }
+
+
+
+         
+      
 leadz8 :: Int -> String
 leadz8 n = printf "%08d" n
 
-gcid :: Int -> Int -> String
-gcid g c = (leadz8 g) ++ "--" ++ (leadz8 c)
                     
 scoreCalc :: Int -> Int -> Integer
 scoreCalc expected given =
@@ -213,17 +210,14 @@ scoreCpu cpu =
 
 
     
-createInitGen :: Int -> [Instruction] -> [Int] -> [CPU]
-createInitGen total g i =
-  [cpuGenome g g i (gcid 0 n) | n <- [0..total-1]]
 
-createInitGen2 :: RandomGen m => Int -> [Instruction] -> Rand StdGen [Int] -> RandT m IO [CPU]
-createInitGen2 total g i =
+createInitGen :: RandomGen m => Int -> [Instruction] -> Rand m [Int] -> Rand m [CPU]
+createInitGen total g i =
   let 
-    mkOrg n =
+    mkOrg _ =
       do
-        randInput1 <- lift $ evalRandIO $ i
-        return $ cpuGenome g g randInput1 (gcid 0 n)
+        randInput1 <- i
+        cpuGenome g g randInput1
   in
     mapM mkOrg [1..total]
   
@@ -248,19 +242,20 @@ mainProg_ maxexec genNum maxGen lastGen inputFunc mutateProb =
       putStrLn $ show executedGen
 
       scoredGen <- evalRandIO $ scoreAndChoose scoreCpu (length executedGen) executedGen
-      mutated <- mapM (\(cpu,_) ->
+      mutated <- mapM (\(cpu,score1) ->
                          do
                            mutatedGenome <- evalRandIO $ mutate (childGenome cpu) mutateProb
-                           return $ (cpu {childGenome = mutatedGenome}, score)
+                           return $ (cpu {childGenome = mutatedGenome}, score1)
                       ) scoredGen
       nextGen <- mapM (\(cpu,_) ->
                          do
                            (newMate,_) <- evalRandIO $ chooseByScore1 scoredGen
                            newInput <- evalRandIO $ inputFunc
-                           return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput (fromJust $ cpuid cpu)
+                           evalRandIO $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput
                       ) mutated
+                 
       if genNum < maxGen
-      then do mainProg_ maxexec (genNum+1) maxGen nextGen inputFunc mutateProb
+      then mainProg_ maxexec (genNum+1) maxGen nextGen inputFunc mutateProb
       else return $ ()
     
 
@@ -268,7 +263,7 @@ mainProg_ maxexec genNum maxGen lastGen inputFunc mutateProb =
 mainProg :: Int -> Int -> Int -> IO ()
 mainProg maxExecCount numPerGeneration numGenerations =
   do
-    initGen <- evalRandTIO $ createInitGen2 numPerGeneration (V.toList genomeReplicate) randInput 
+    initGen <- evalRandIO $ createInitGen numPerGeneration (V.toList genomeReplicate) randInput 
     mainProg_ maxExecCount numGenerations 0 initGen randInput 0.001
 
       
@@ -375,24 +370,6 @@ execInstruc cpu =
   in
     incrCpu newc
 
-newCpu :: CPU
-newCpu = CPU { cpuid = Nothing,
-               ax = 0,
-               bx = 0,
-               cx = 0,
-               dx = 0,
-               iCounter = 0,
-               iPointer = 0,
-               stack = [],
-               stack2 = [],               
-               input = [],
-               output = [],
-               genome = V.fromList [],
-               mateGenome = V.fromList [],
-               childGenome = [],
-               jmpSignal = Nothing,
-               parents = Nothing }
-                        
                    
 genomeReplicate :: V.Vector Instruction            
 genomeReplicate =
