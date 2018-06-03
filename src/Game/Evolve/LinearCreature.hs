@@ -32,7 +32,6 @@ module Game.Evolve.LinearCreature
   )
   where
 
-import System.IO
 import Control.Monad.Random
 import Control.Parallel.Strategies
 import Data.List 
@@ -40,6 +39,7 @@ import qualified Data.Vector as V
 import Text.Printf 
 import Data.Maybe 
 import Data.Bits
+import Data.UUID
 
 data Instruction =
   Nop | -- do nothing
@@ -77,7 +77,7 @@ data Instruction =
 
   
 data CPU = CPU {
-  cpuid :: Maybe String,
+  cpuid :: UUID,
   ax :: Int,
   bx :: Int,
   cx :: Int,
@@ -162,20 +162,18 @@ scoreAndChoose scoreFunc numToChoose outputs =
 
  
 
-cpuGenome :: [Instruction] -> [Instruction] -> [Int] -> String -> CPU
-cpuGenome g mg i cid = newCpu {cpuid = Just cid,
-                            genome = V.fromList g,
-                            mateGenome = V.fromList mg,
-                            input = i
-                           }
-leadz4 :: Int -> String
-leadz4 n = printf "%04d" n
-
+cpuGenome :: RandomGen m => [Instruction] -> [Instruction] -> [Int] -> String -> CPU -> Rand m UUID
+cpuGenome g mg i cid = newCpu {
+                         cpuID = getRandom,
+                         genome = V.fromList g,
+                         mateGenome = V.fromList mg,
+                         input = i
+                       }
 leadz8 :: Int -> String
 leadz8 n = printf "%08d" n
 
 gcid :: Int -> Int -> String
-gcid g c = (leadz4 g) ++ "--" ++ (leadz4 c)
+gcid g c = (leadz8 g) ++ "--" ++ (leadz8 c)
                     
 scoreCalc :: Int -> Int -> Integer
 scoreCalc expected given =
@@ -236,24 +234,19 @@ createInitGen2 total g i =
   
 
 
-sortScore :: (CPU, Rational) -> (CPU, Rational) -> Ordering
-sortScore (_,s1) (_,s2) = if s1 < s2
-                          then LT
-                          else
-                            if s1 > s2
-                            then GT
-                            else EQ
 
 
 
-mainProg_ :: Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
-mainProg_ maxexec genNum lastGen inputFunc mutateProb =
+mainProg_ :: Int -> Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
+mainProg_ maxexec genNum maxGen lastGen inputFunc mutateProb =
   let
-    parMapChunk f = withStrategy (parListChunk 25 rseq) . map f
+    parMapChunk f = withStrategy (parListChunk 1 rseq) . map f
   in
     do
       executedGen <- return $! parMapChunk (\cpu -> executeCpu cpu maxexec) lastGen
-      rawScoredGen <- return $ sortBy sortScore $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen
+
+      putStrLn $ show executedGen
+
       scoredGen <- evalRandIO $ scoreAndChoose scoreCpu (length executedGen) executedGen
       mutated <- mapM (\(cpu,_) ->
                          do
@@ -266,15 +259,17 @@ mainProg_ maxexec genNum lastGen inputFunc mutateProb =
                            newInput <- evalRandIO $ inputFunc
                            return $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput (fromJust $ cpuid cpu)
                       ) mutated
-      mainProg_ maxexec (genNum+1) nextGen inputFunc mutateProb
+      if genNum < maxGen
+      then do mainProg_ maxexec (genNum+1) maxGen nextGen inputFunc mutateProb
+      else return $ ()
     
 
 --mainProg :: Int -> Int -> [Instruction] -> IO ()
-mainProg :: IO ()
-mainProg  =
+mainProg :: Int -> Int -> Int -> IO ()
+mainProg maxExecCount numPerGeneration numGenerations =
   do
-    initGen <- evalRandTIO $ createInitGen2 10 (V.toList genomeReplicate) randInput 
-    mainProg_ 5000 0 initGen randInput 0.001
+    initGen <- evalRandTIO $ createInitGen2 numPerGeneration (V.toList genomeReplicate) randInput 
+    mainProg_ maxExecCount numGenerations 0 initGen randInput 0.001
 
       
 randInput :: RandomGen m => Rand m [Int]

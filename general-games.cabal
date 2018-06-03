@@ -21,7 +21,7 @@ source-repository head
     type:     git
     location: git://github.com/cgorski/general-games.git
 
-executable foob
+executable general-games
   main-is: Main.hs
   other-modules:
   hs-source-dirs: app
@@ -29,6 +29,7 @@ executable foob
   build-depends:
     base >=4.7 && <5
     , general-games
+    , cmdargs
   default-language: Haskell2010
                                                                 
                           
@@ -52,6 +53,8 @@ library
                      , monad-parallel
                      , parallel-io
                      , parallel
+                     , uuid
+
 
   default-language:    Haskell2010
 --  ghc-options:         -Wall
