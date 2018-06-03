@@ -52,8 +52,6 @@ library
                      , monad-parallel
                      , parallel-io
                      , parallel
-                     , deepseq
-                     
 
   default-language:    Haskell2010
 --  ghc-options:         -Wall
