@@ -40,6 +40,7 @@ library
                      , Game.Implement.Card.Standard.Poker
                      , Game.Game.Poker
                      , Game.Evolve.LinearCreature
+                     , Game.Evolve.Distribution
                      , Control.Monad.LoopWhile
 
   build-depends:       base >= 4.7 && < 5
