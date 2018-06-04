@@ -25,7 +25,7 @@ executable general-games
   main-is: Main.hs
   other-modules:
   hs-source-dirs: app
-  ghc-options: -threaded -feager-blackholing -rtsopts -O2 "-with-rtsopts=-N"
+  ghc-options: -threaded -feager-blackholing -rtsopts -O2 "-with-rtsopts=-N -A1020m"
   build-depends:
     base >=4.7 && <5
     , general-games

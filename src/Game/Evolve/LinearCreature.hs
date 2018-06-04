@@ -105,8 +105,8 @@ scoreGeneric scoreFunc outputs =
     normalizedRawScores =
         if fitnessSum == 0
         then map (\(out,_) -> (out,(1/(fromIntegral $ length normalizedRawScores)))) adjustedRawScores
-        else map (\(out,score1) -> (out, if (score1/fitnessSum) < (1/20) --minimum score
-                                        then 1/20
+        else map (\(out,score1) -> (out, if (score1/fitnessSum) < (1/5) --minimum score
+                                        then 1/5
                                         else score1/fitnessSum)) adjustedRawScores
     sortedNormalized = sortBy (\(_,score1) (_,score2)-> score1 `compare` score2) normalizedRawScores
     accumulated = scanl1 (\(_,score1) (out2,score2) -> (out2, score1+score2)) sortedNormalized
@@ -138,7 +138,7 @@ scoreGenericD scoreFunc outputs =
     rawScores = map (\out -> (out, (scoreFunc out))) outputs
     totalFitness = foldl' (+) 0 $ map (\(_,s) -> s) rawScores
   in
-    map (\(o,s) -> (o, min (s/totalFitness) (1/20))) rawScores
+    map (\(o,s) -> (o, min (s/totalFitness) (1/2))) rawScores
                       
   -- in
   --   map (\(out,score1) -> (out, if (score1/totalFitness) < (1/20) --minimum score
@@ -172,11 +172,11 @@ chooseByScore1 scoredPairs =
       chosen <- chooseByScore 1 scoredPairs
       return $ chosen !! 0
 
-chooseByScore1D :: (Ord a, RandomGen m) => DS.Generator (a, Rational) -> Rand m (a, Rational)
+chooseByScore1D :: (Ord a, RandomGen m) => GED.Distribution Double (a, Rational) -> Rand m (a, Rational)
 chooseByScore1D scoredPairs =
     do
-      chosen <- chooseByScoreD_ 1 scoredPairs
-      return $ chosen !! 0
+      chosen <- GED.sample scoredPairs
+      return $ chosen
 
 chooseByScoreD :: (Ord a, RandomGen m) => Int -> [(a, Rational)] -> Rand m [(a, Rational)]
 chooseByScoreD numToChoose scoredPairs =
@@ -185,19 +185,17 @@ chooseByScoreD numToChoose scoredPairs =
     replicateM numToChoose $! GED.sample gen
                            
 
-makeGen :: (Ord a) => [(a, Rational)] -> DS.Generator (a, Rational)
-makeGen scoredPairs =
-  let distrib = D.fromList (map (\(a,s) -> ((a,s),s) ) scoredPairs)
-  in
-    DS.fromDistribution distrib
+-- makeGen :: (Ord a) => [(a, Rational)] -> DS.Generator (a, Rational)
+-- makeGen scoredPairs =
+--   let distrib = D.fromList (map (\(a,s) -> ((a,s),s) ) scoredPairs)
+--   in
+--     DS.fromDistribution distrib
 
 
 
-chooseByScoreD_ :: (Ord a, RandomGen m) => Int -> DS.Generator (a, Rational) -> Rand m [(a, Rational)]
-chooseByScoreD_ numToChoose gen =
-  replicateM numToChoose (do
-                             (a,s) <- DS.getSample gen
-                             return $ (a, s))
+
+
+
 
 
   
@@ -324,8 +322,13 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
     parMapChunk f = withStrategy (parListChunk 1 rseq) . map f
   in
     do
-      executedGen <- return $ parMapChunk (\cpu -> (executeCpu cpu maxexec)) lastGen
+      putStrLn "foo"
+      putStrLn "\n"
+      executedGen <- return $! parMapChunk (\cpu -> (executeCpu cpu maxexec)) lastGen
 --      generation <- return $ newGeneration currentGen executedGen
+      putStrLn "foo"
+      putStrLn "\n"
+
       bestCPUs <- return $ (sortBy (\(_,s1) (_,s2) -> s2 `compare` s1) $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen)
       
 --      bestCPUGen <- return $ (bestCPU,currentGen)
@@ -336,19 +339,26 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
 --      putStrLn "\n\n\n\nBEST\n\n\n\n"
 --      r <- return $ scoreGenericD 
 
-      scoredGen <- evalRandIO $ scoreAndChooseD scoreCpu (length executedGen) executedGen
+      
+      (scoredGen :: [(CPU, Rational)]) <- evalRandIO $ scoreAndChooseD scoreCpu (length executedGen) executedGen
+
+
+      scoredGenDist <- return $ GED.fromList $ map (\(cpu, s) -> ((cpu,s), ((fromRational s) :: Double) )) scoredGen
+
+
       mutated <- mapM (\(cpu,score1) ->
                          do
                            mutatedGenome <- evalRandIO $ mutate (childGenome cpu) mutateProb
                            return $ (cpu {childGenome = mutatedGenome}, score1)
                       ) scoredGen
-      scoredGenGen <- return $ makeGen scoredGen
+
+
       nextGen <- mapM (\(cpu,_) ->
                          do
-                           (newMate,_) <- evalRandIO $ chooseByScore1D scoredGenGen
+                           (newMate,_) <- evalRandIO $ chooseByScore1D scoredGenDist
                            newInput <- evalRandIO $ inputFunc
 --                           putStrLn $ show $ (reverse $ childGenome cpu)
-                           evalRandIO $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput
+                           evalRandIO $ cpuGenome (reverse $ childGenome cpu) (V.toList $ genome newMate) newInput
                       ) mutated
 
 --      putStrLn $ show nextGen
@@ -361,6 +371,7 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
       putStrLn $ show $ bestCPUs !! 1
       putStrLn ""
       putStrLn $ show $ bestCPUs !! 0
+      hFlush stdout
 
       if currentGen < (maxGen-1)
       then mainProg_ maxexec (currentGen+1) maxGen nextGen inputFunc mutateProb
