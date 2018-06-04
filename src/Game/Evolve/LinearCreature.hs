@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns #-}
 
 
 -- |
@@ -22,7 +23,8 @@ import Control.Monad.Random
 import Control.Parallel.Strategies
 import Data.List 
 import qualified Data.Vector as V
-import Text.Printf 
+import Text.Printf
+import System.IO
 
 import Data.Bits
 import Data.UUID
@@ -228,18 +230,32 @@ createInitGen total g i =
   
 
 
+data Generation = Generation {
+  genNum :: Int,
+  cpus :: [CPU]
+  }
+    deriving (Show)
 
+newGeneration :: Int -> [CPU] -> Generation
+newGeneration gn cs=
+  Generation {
+         genNum = gn,
+         cpus = cs
+         }
 
+         
+         
 
 mainProg_ :: Int -> Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
-mainProg_ maxexec genNum maxGen lastGen inputFunc mutateProb =
+mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
   let
     parMapChunk f = withStrategy (parListChunk 1 rseq) . map f
   in
     do
       executedGen <- return $! parMapChunk (\cpu -> executeCpu cpu maxexec) lastGen
-
-      putStrLn $ show executedGen
+      generation <- return $ newGeneration currentGen executedGen
+      putStrLn $ (show generation) ++ "\n\n\n\n=========\n\n\n\n"
+      hFlush stdout
 
       scoredGen <- evalRandIO $ scoreAndChoose scoreCpu (length executedGen) executedGen
       mutated <- mapM (\(cpu,score1) ->
@@ -254,17 +270,17 @@ mainProg_ maxexec genNum maxGen lastGen inputFunc mutateProb =
                            evalRandIO $ cpuGenome (reverse $ childGenome cpu) (V.toList $ mateGenome newMate) newInput
                       ) mutated
                  
-      if genNum < maxGen
-      then mainProg_ maxexec (genNum+1) maxGen nextGen inputFunc mutateProb
+      if currentGen < (maxGen-1)
+      then mainProg_ maxexec (currentGen+1) maxGen nextGen inputFunc mutateProb
       else return $ ()
     
 
 --mainProg :: Int -> Int -> [Instruction] -> IO ()
-mainProg :: Int -> Int -> Int -> IO ()
-mainProg maxExecCount numPerGeneration numGenerations =
+mainProg :: Int -> Int -> Int -> Double -> IO ()
+mainProg maxExecCount numPerGeneration numGenerations mutateProb =
   do
     initGen <- evalRandIO $ createInitGen numPerGeneration (V.toList genomeReplicate) randInput 
-    mainProg_ maxExecCount numGenerations 0 initGen randInput 0.001
+    mainProg_ maxExecCount 0 numGenerations initGen randInput mutateProb
 
       
 randInput :: RandomGen m => Rand m [Int]
@@ -312,12 +328,15 @@ mutate ins probthres =
             
             
 executeCpu :: CPU -> Int -> CPU
-executeCpu cpu countmax
+executeCpu !cpu !countmax
     | (iCounter cpu) < countmax =
         case V.length (genome cpu) of
           0 -> cpu {iCounter = countmax}
           _ -> executeCpu (execInstruc cpu) countmax
     | otherwise = cpu
+
+
+
 
 
 incrCpu :: CPU -> CPU
@@ -334,7 +353,7 @@ incrCpu cpu =
             jmpSignal = Nothing}
 
 execInstruc :: CPU -> CPU
-execInstruc cpu =
+execInstruc !cpu =
   let newc =
           case ((genome cpu) V.! (iPointer cpu)) of
             Nop -> iNop cpu

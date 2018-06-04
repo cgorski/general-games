@@ -54,6 +54,8 @@ library
                      , parallel-io
                      , parallel
                      , uuid
+                     , foldl
+                     , distribution
 
 
   default-language:    Haskell2010
