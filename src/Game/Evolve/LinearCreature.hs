@@ -134,9 +134,12 @@ scoreGeneric scoreFunc outputs =
 
 scoreGenericD :: (a -> Rational) -> [a] -> [(a, Rational)]
 scoreGenericD scoreFunc outputs =
---  let
-    map (\out -> (out, min (scoreFunc out) (1/20))) outputs
-  --   totalFitness = foldl' (+) 0 $ map (\(_,s) -> s) scores
+  let
+    rawScores = map (\out -> (out, (scoreFunc out))) outputs
+    totalFitness = foldl' (+) 0 $ map (\(_,s) -> s) rawScores
+  in
+    map (\(o,s) -> (o, min (s/totalFitness) (1/20))) rawScores
+                      
   -- in
   --   map (\(out,score1) -> (out, if (score1/totalFitness) < (1/20) --minimum score
   --                               then 1/20
@@ -323,9 +326,9 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
     do
       executedGen <- return $ parMapChunk (\cpu -> (executeCpu cpu maxexec)) lastGen
 --      generation <- return $ newGeneration currentGen executedGen
+      bestCPUs <- return $ (sortBy (\(_,s1) (_,s2) -> s2 `compare` s1) $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen)
       
-      bestCPU <- return $ (sortBy (\(_,s1) (_,s2) -> s2 `compare` s1) $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen) !! 0
-      bestCPUGen <- return $ (bestCPU,currentGen)
+--      bestCPUGen <- return $ (bestCPU,currentGen)
       
 --      putStrLn $ (show generation) ++ "\n\n\n\n=========\n\n\n\n"
 --      hFlush stdout
@@ -353,7 +356,11 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
       putStrLn "\n\n\n\nBEST\n\n\n\n"
       putStrLn $ "Current Generation: " ++ (leadz8 currentGen)
       putStrLn ""
-      putStrLn $ show bestCPU
+      putStrLn $ show $ bestCPUs !! 2 
+      putStrLn ""
+      putStrLn $ show $ bestCPUs !! 1
+      putStrLn ""
+      putStrLn $ show $ bestCPUs !! 0
 
       if currentGen < (maxGen-1)
       then mainProg_ maxexec (currentGen+1) maxGen nextGen inputFunc mutateProb
