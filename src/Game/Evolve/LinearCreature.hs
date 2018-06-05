@@ -249,7 +249,7 @@ leadz8 n = printf "%08d" n
                     
 scoreCalc :: Int -> Int -> Integer
 scoreCalc expected given =
-  let (numcalc ::Integer) = ceiling (logBase 10 (fromIntegral (expected-given)))
+  let (numcalc ::Integer) = ceiling (logBase 2 (fromIntegral $ abs (expected-given)))
   in
     if numcalc  > (toInteger (maxBound :: Int))
     then toInteger $ (maxBound :: Int)-(2^(32 :: Int))
@@ -607,8 +607,8 @@ genomeReplicate =
           SwapDx,
 
           Nop,
-          NJmp]
-  --        Nop]
+--          NJmp]
+          Nop]
 
               
 
