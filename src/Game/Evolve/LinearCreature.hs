@@ -19,7 +19,7 @@ module Game.Evolve.LinearCreature
   )
   where
 
-import Control.Monad.Random
+import Control.Monad.Random 
 import Control.Parallel.Strategies
 import Data.List 
 import qualified Data.Vector as V
@@ -32,6 +32,7 @@ import Data.Bits
 import Data.UUID
 import qualified Game.Evolve.Distribution as GED
 import qualified Control.Foldl as F
+import qualified Control.Monad.Parallel as PM
 
 data Instruction =
   Nop | -- do nothing
@@ -313,8 +314,32 @@ newGeneration gn cs=
          cpus = cs
          }
 
-         
-         
+
+
+splitRandGenMap :: RandomGen m => m -> [a] -> [(a,m)]
+splitRandGenMap rand lst =
+  let func1 [] acc _ = acc
+      func1 (x:xs) acc rgen =
+        let (rs1, rs2) = split rgen in
+          func1 xs ((x, rs1):acc) rs2
+  in
+    reverse $ func1 lst [] rand
+        
+
+forkRandIOMap :: RandomGen m => m -> (a -> Rand m a) -> [a] -> [a]
+forkRandIOMap rgen mapfunc lst =
+  let rlst = splitRandGenMap rgen lst
+      parMapChunk f = withStrategy (parListChunk 1 rseq) . map f
+      rfunc (arg,thisgen) = evalRand (mapfunc arg) thisgen
+  in
+    do parMapChunk rfunc rlst
+  
+    
+
+        
+
+
+  
 
 mainProg_ :: Int -> Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
 mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
@@ -322,12 +347,8 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
     parMapChunk f = withStrategy (parListChunk 1 rseq) . map f
   in
     do
-      putStrLn "foo"
-      putStrLn "\n"
       executedGen <- return $! parMapChunk (\cpu -> (executeCpu cpu maxexec)) lastGen
 --      generation <- return $ newGeneration currentGen executedGen
-      putStrLn "foo"
-      putStrLn "\n"
 
       bestCPUs <- return $ (sortBy (\(_,s1) (_,s2) -> s2 `compare` s1) $ map (\cpu -> (cpu, scoreCpu cpu)) executedGen)
       
@@ -390,7 +411,7 @@ randInput :: RandomGen m => Rand m [Int]
 randInput =
   do
     start <- getRandomR(1,10000)
-    return $ [start*(2^n) |(n :: Int) <- [10..19]]
+    return $ [start*(2^n) |(n :: Int) <- [10..14]]
 
             
 mutate :: RandomGen m => [Instruction] -> Double -> Rand m [Instruction]
@@ -581,7 +602,8 @@ genomeReplicate =
           SwapDx,
 
           Nop,
-          NJmp]
+--          NJmp]
+          Nop]
 
               
 
