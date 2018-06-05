@@ -19,6 +19,7 @@ module Game.Evolve.LinearCreature
   )
   where
 
+--import Data.Ratio
 import Control.Monad.Random 
 import Control.Parallel.Strategies
 import Data.List 
@@ -248,7 +249,7 @@ leadz8 n = printf "%08d" n
                     
 scoreCalc :: Int -> Int -> Integer
 scoreCalc expected given =
-  let (numcalc ::Integer) = ((((toInteger expected)-(toInteger given))+1)^(2 :: Int))
+  let (numcalc ::Integer) = ceiling (logBase 10 (fromIntegral (expected-given)))
   in
     if numcalc  > (toInteger (maxBound :: Int))
     then toInteger $ (maxBound :: Int)-(2^(32 :: Int))
