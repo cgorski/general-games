@@ -39,15 +39,9 @@ data Instruction =
   Nop | -- do nothing
   Zero | -- ax = 0
   Incr | -- ax = ax+1
-  Neg | -- ax = -ax
-  Add | -- ax = bx + cx
-  Mult | -- ax = bx * cx
-  Div | -- ax = bx / cx
-  Mod | -- ax = bx mod cx
   RotateL | -- ax = bx rotatel cx
-  WeirdXor |
-  Xor |
-  Nand | 
+  Xor | -- ax = bx xor cx
+  Nand | -- ax = bx nand cx
   TestLT | -- ax = 1 if  bx < cx else 0
   TestEQ | -- ax = 1 if bx == cx else 0
   Jmp | -- Add dx to instruction pointer mod self length if ax = 1
@@ -79,21 +73,20 @@ data Instruction =
   
 data CPU = CPU {
   cpuid :: UUID,
-  ax :: Int,
-  bx :: Int,
-  cx :: Int,
-  dx :: Int,
   iCounter :: Int,
   iPointer :: Int,
-  stack :: [Int],
-  stack2 :: [Int],
+  stackAx :: [Int],
+  stackBx :: [Int],
+  stackCx :: [Int],
   input :: [Int],
   output :: [Int],
   genome :: V.Vector Instruction,
-  mateGenome :: V.Vector Instruction,
+  mateGenomeStack :: [Int],
   childGenome :: [Instruction],
   jmpSignal :: Maybe Int,
-  parents :: Maybe (CPU,CPU)
+  parents :: Maybe (CPU,CPU),
+  test :: Boolean,
+  isCloningMate :: Boolean
 } deriving (Show)
 
 instance Eq CPU where
@@ -239,9 +232,11 @@ cpuGenome g mg i =
 
       cpuid = uuid,
       genome = V.fromList g,
-      mateGenome = V.fromList mg,
+      mateGenomeStack = mg,
+      genomeStack = g
       childGenome = [],
-
+      test = False,
+      isCloningMate = False,
 
       jmpSignal = Nothing,
       parents = Nothing}
@@ -507,7 +502,6 @@ execInstruc !cpu =
             Div -> iDiv cpu
             Mod -> iMod cpu
             RotateL -> iRotateL cpu
-            WeirdXor -> iWeirdXor cpu
             Xor -> iXor cpu
             Nand -> iNand cpu
             TestLT -> iTestLT cpu
@@ -679,13 +673,6 @@ iMod cpu =
 iRotateL :: CPU -> CPU
 iRotateL cpu =
     if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = (bx cpu) `rotate` (cx cpu) }
-
-iWeirdXor :: CPU -> CPU
-iWeirdXor cpu =
-  let axval = ax cpu 
-      newval = ((axval `complementBit` 3) `complementBit` 5) `complementBit` 7
-  in
-    cpu { ax = newval }
 
 iXor :: CPU -> CPU
 iXor cpu =
