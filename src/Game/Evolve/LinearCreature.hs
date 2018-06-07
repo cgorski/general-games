@@ -45,6 +45,9 @@ data Instruction =
   Div | -- ax = bx / cx
   Mod | -- ax = bx mod cx
   RotateL | -- ax = bx rotatel cx
+  WeirdXor |
+  Xor |
+  Nand | 
   TestLT | -- ax = 1 if  bx < cx else 0
   TestEQ | -- ax = 1 if bx == cx else 0
   Jmp | -- Add dx to instruction pointer mod self length if ax = 1
@@ -65,7 +68,11 @@ data Instruction =
   ReadMate | -- read instruction number bx mod len from mate and store type in ax
   ReadSelf | -- read instruction number bx mod len from self and store type in ax
   WriteChild | -- write instruction type ax to end of child
-  WriteOutput  -- push number ax to output
+  WriteOutputA |  -- push number ax to output
+  WriteOutputB | -- push number ax to output
+  WriteOutputC | -- push number ax to output
+  WriteOutputD | -- push number ax to output
+  WriteOutputPop  -- push number ax to output
 
   deriving (Show, Enum, Eq, Ord, Bounded)
 
@@ -228,7 +235,7 @@ cpuGenome g mg i =
       stack = [],
       stack2 = [],               
       input = i,
-      output = [],
+      output = [0,0,0,0,0],
 
       cpuid = uuid,
       genome = V.fromList g,
@@ -249,7 +256,7 @@ leadz8 n = printf "%08d" n
                     
 scoreCalc :: Int -> Int -> Integer
 scoreCalc expected given =
-  let (numcalc ::Integer) = ceiling (logBase 2 (fromIntegral $ abs (expected-given)))
+  let (numcalc ::Integer) = ceiling (logBase 1.5 (fromIntegral $ abs (expected-given)))
   in
     if numcalc  > (toInteger (maxBound :: Int))
     then toInteger $ (maxBound :: Int)-(2^(32 :: Int))
@@ -278,7 +285,7 @@ scoreCpu :: CPU -> Rational
 scoreCpu cpu =
   if (length $ childGenome cpu) == 0
   then 1 / 100000000000000000000000000000000000000
-  else let n = fromIntegral $ score (input cpu) (reverse $ output cpu)
+  else let n = (fromIntegral $ score (input cpu) (reverse $ output cpu)) + 50
        in
          if n == 0
          then 1
@@ -333,7 +340,7 @@ splitRandGenMap rand lst =
 forkRandIOMap :: RandomGen m => m -> (a -> Rand m a) -> [a] -> [a]
 forkRandIOMap rgen mapfunc lst =
   let rlst = splitRandGenMap rgen lst
-      parMapChunk f = withStrategy (parListChunk 10 rseq) . map f
+      parMapChunk f = withStrategy (parListChunk 20 rseq) . map f
       rfunc (arg,thisgen) = evalRand (mapfunc arg) thisgen
   in
     parMapChunk rfunc rlst
@@ -348,7 +355,7 @@ forkRandIOMap rgen mapfunc lst =
 mainProg_ :: Int -> Int -> Int -> [CPU] -> Rand StdGen [Int] -> Double -> IO ()
 mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
   let
-    parMapChunk f = withStrategy (parListChunk 1 rseq) . map f
+    parMapChunk f = withStrategy (parListChunk 20 rseq) . map f
   in
     do
       executedGen <- return $! parMapChunk (\cpu -> (executeCpu cpu maxexec)) lastGen
@@ -389,7 +396,13 @@ mainProg_ maxexec currentGen maxGen lastGen inputFunc mutateProb =
 
 --      putStrLn $ show nextGen
 
-      putStrLn "\n\n\n\nBEST\n\n\n\n"
+  
+
+ 
+--      putStrLn $ "Entire Generation: " ++ (leadz8 currentGen)
+--      putStrLn ""
+--      putStrLn $ show bestCPUs
+      putStrLn ""
       putStrLn $ "Current Generation: " ++ (leadz8 currentGen)
       putStrLn ""
       putStrLn $ show $ bestCPUs !! 2 
@@ -494,6 +507,9 @@ execInstruc !cpu =
             Div -> iDiv cpu
             Mod -> iMod cpu
             RotateL -> iRotateL cpu
+            WeirdXor -> iWeirdXor cpu
+            Xor -> iXor cpu
+            Nand -> iNand cpu
             TestLT -> iTestLT cpu
             TestEQ -> iTestEQ cpu
             Jmp -> iJmp cpu
@@ -514,7 +530,11 @@ execInstruc !cpu =
             ReadMate -> iReadMate cpu
             ReadSelf -> iReadSelf cpu
             WriteChild -> iWriteChild cpu
-            WriteOutput -> iWriteOutput cpu
+            WriteOutputA -> iWriteOutputA cpu
+            WriteOutputB -> iWriteOutputB cpu
+            WriteOutputC -> iWriteOutputC cpu
+            WriteOutputD -> iWriteOutputD cpu
+            WriteOutputPop -> iWriteOutputPop cpu                        
   in
     incrCpu newc
 
@@ -541,6 +561,7 @@ genomeReplicate =
           Neg,
           SwapDx, -- Move jump address to Dx - cx = 9 ; dx = -6
           ReadSelf, -- ax = Incr, cx = 9, dx = -6
+--          ReadMate,
           WriteChild,
           SwapBx, -- ax = 0, bx = Incr, cx = 9, dx = -6
           Incr,   -- ax = 1, bx = Incr, cx = 9, dx = -6
@@ -590,18 +611,30 @@ genomeReplicate =
           SwapDx,
           Zero,
 
-          ReadInput,
-          WriteOutput,
-          Incr,
-          WriteOutput,
-          Incr,
-          WriteOutput,
-          Incr,
-          WriteOutput,
-          Incr,
-          WriteOutput,
-          Zero,
-              
+--          ReadInput,
+--          WriteOutput,
+--          Incr,
+--          WriteOutput,
+--          Incr,
+--          WriteOutput,
+--          Incr,
+--          WriteOutput,
+--          Incr,
+--          WriteOutput,
+--          Zero,
+
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+          Nop,
+            
           Incr,
           Neg,
           SwapDx,
@@ -646,6 +679,23 @@ iMod cpu =
 iRotateL :: CPU -> CPU
 iRotateL cpu =
     if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = (bx cpu) `rotate` (cx cpu) }
+
+iWeirdXor :: CPU -> CPU
+iWeirdXor cpu =
+  let axval = ax cpu 
+      newval = ((axval `complementBit` 3) `complementBit` 5) `complementBit` 7
+  in
+    cpu { ax = newval }
+
+iXor :: CPU -> CPU
+iXor cpu =
+    if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = (bx cpu) `xor` (cx cpu) }
+
+iNand :: CPU -> CPU
+iNand cpu =
+    if (cx cpu) == 0 then cpu {ax = 0} else cpu { ax = complement ((bx cpu) .&. (cx cpu)) }
+
+
 
 iTestLT :: CPU -> CPU
 iTestLT cpu =
@@ -764,14 +814,35 @@ iWriteChild cpu =
         minint = fromEnum minI :: Int
         maxint = fromEnum maxI :: Int 
     in
-      if ax cpu < minint || ax cpu > maxint
-      then cpu { childGenome = (toEnum 0):(childGenome cpu) }
-      else cpu { childGenome = (toEnum (ax cpu)):(childGenome cpu) }
+--      if ax cpu < minint || ax cpu > maxint
+--      then cpu { childGenome = (toEnum 0):(childGenome cpu) }
+--      else cpu { childGenome = (toEnum (ax cpu)):(childGenome cpu) }
+      cpu { childGenome = (toEnum ( abs ((ax cpu) `mod` maxint) )) :(childGenome cpu) }
 
                                       
-iWriteOutput :: CPU -> CPU
-iWriteOutput cpu =
+iWriteOutputA :: CPU -> CPU
+iWriteOutputA cpu =
     cpu { output = (ax cpu):(output cpu) }
+
+iWriteOutputB :: CPU -> CPU
+iWriteOutputB cpu =
+    cpu { output = (bx cpu):(output cpu) }
+
+iWriteOutputC :: CPU -> CPU
+iWriteOutputC cpu =
+    cpu { output = (cx cpu):(output cpu) }
+
+iWriteOutputD :: CPU -> CPU
+iWriteOutputD cpu =
+    cpu { output = (dx cpu):(output cpu) }
+
+iWriteOutputPop :: CPU -> CPU
+iWriteOutputPop cpu =
+  case (stack cpu) of
+    [] -> cpu { output = 0:(output cpu) }
+    (x:_) -> cpu { output = x:(output cpu) }
+
+    
 
 
             
